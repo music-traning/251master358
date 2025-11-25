@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Jazz Lick Trainer (Final Fix Transposition)</title>
+    <title>Jazz Lick Trainer (Final Layout Clean)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     
@@ -63,11 +63,11 @@
 
 <div class="container">
     <div class="status-bar">
-        <div>Jazz Lick Trainer (Final Fix Transposition)</div>
+        <div>Jazz Lick Trainer (Final)</div>
         <div class="key-display" id="currentKeyDisplay">Key: C</div>
     </div>
     
-    <div id="drop-zone">MIDIファイルをドロップ (度数自動判別・4小節以内)</div>
+    <div id="drop-zone">MIDIファイルをドロップ (度数自動判別・5小節以内)</div>
     <div id="notation-container"></div>
 
     <div class="control-panel">
@@ -131,7 +131,7 @@
 
 <script>
     const keyCycle = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"];
-    const STORAGE_KEY = "jazzLickUserPresets_v47_FixTranspo"; 
+    const STORAGE_KEY = "jazzLickUserPresets_v50_Final"; 
     const stringBaseMidi = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
     
     // 音名定義
@@ -214,7 +214,7 @@
         }
     }
 
-    // ★修正: 計算ロジックを分離（再生予約時に未来のキーのデータを計算するため）
+    // 計算ロジック
     function getCalculatedLickData(keyIdx) {
         let keyName = keyCycle[keyIdx];
         let targetKeyIndex = notesFlat.indexOf(keyName); 
@@ -326,7 +326,8 @@
         const svg = document.createElementNS(ns, "svg");
         svg.setAttribute("width", width); svg.setAttribute("height", height);
         
-        const topY=90, startX=160, gap=55;
+        // ★ startX=240 でマージン確保 (二重線コードは削除)
+        const topY=90, startX=240, gap=55;
 
         for(let i=0;i<5;i++){
             let y=topY+i*10; let l=document.createElementNS(ns,"line");
@@ -457,7 +458,6 @@
             Tone.Transport.schedule(t=>clickSynth.triggerAttackRelease("C6","32n",t), st+i*Tone.Time("4n").toSeconds());
         }
 
-        // ★修正: ここで未来のデータを計算して使用（グローバルのAppStateは使わない）
         let nextCycleData = getCalculatedLickData(kIdx).data;
         
         let cur = st;
