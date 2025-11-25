@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Jazz Lick Trainer (Fixed Start & Alternating)</title>
+    <title>Jazz Lick Trainer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     
@@ -28,7 +28,7 @@
         #fretboard-container { background: #3e2723; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 10px; }
         
         .control-panel { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0; display: flex; flex-direction: column; gap: 15px; align-items: center;}
-        .control-row { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .control-row { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; justify-content: center; width: 100%; }
         
         .select-group { display: flex; flex-direction: column; gap: 5px; text-align: left; }
         .select-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
@@ -81,7 +81,7 @@
 
 <div class="container">
     <div class="status-bar">
-        <div>Jazz Lick Trainer (Final)</div>
+        <div>Jazz Lick Trainer (v38.0)</div>
         <div class="key-display" id="currentKeyDisplay">Key: C</div>
     </div>
     
@@ -103,7 +103,7 @@
                     </select>
                 </div>
                 <button class="btn-save" onclick="saveUserPreset()">💾 保存</button>
-                <button class="btn-clear" onclick="deleteCurrentPreset()">🗑️ 削除</button>
+                <button class="btn-del" onclick="deleteCurrentPreset()">🗑️ 削除</button>
             </div>
             <button class="btn-reset" onclick="clearAllUserPresets()" style="align-self: center; margin-left: 10px;">全消去</button>
         </div>
@@ -151,12 +151,15 @@
 </div>
 
 <script>
+    // === Global Constants ===
     const keyCycle = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"];
-    const STORAGE_KEY = "jazzLickUserPresets_v36"; 
+    const STORAGE_KEY = "jazzLickUserPresets_v38"; 
     const stringBaseMidi = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
     const midiToNoteName = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
     const keySignatures = { "C": {n:0,t:"f"}, "F": {n:1,t:"f"}, "Bb": {n:2,t:"f"}, "Eb": {n:3,t:"f"}, "Ab": {n:4,t:"f"}, "Db": {n:5,t:"f"}, "Gb": {n:6,t:"f"}, "B": {n:5,t:"s"}, "E": {n:4,t:"s"}, "A": {n:3,t:"s"}, "D": {n:2,t:"s"}, "G": {n:1,t:"s"} };
+    const degreeMap = ["1", "b9", "9", "b3", "3", "11", "#11", "5", "b13", "13", "b7", "7"];
 
+    // === Default Library ===
     const defaultLibrary = [
         { name: "1. Basic Smooth", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "2", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "" },{ noteName: "A", string: 4, fret: 7, duration: "8", degree: "5", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "8", degree: "b7", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "8", degree: "3", chord: "V" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", degree: "b9", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "4", degree: "5", chord: "" },{ noteName: "E", string: 5, fret: 7, duration: "4", degree: "3", chord: "I" }] },
         { name: "2. 9th Descent", data: [{ noteName: "E", string: 5, fret: 7, duration: "8", degree: "9", chord: "II" },{ noteName: "C", string: 5, fret: 3, duration: "8", degree: "b7", chord: "" },{ noteName: "A", string: 6, fret: 5, duration: "8", degree: "5", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", degree: "b3", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", degree: "b7", chord: "V" },{ noteName: "E", string: 6, fret: 0, duration: "8", degree: "13", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "4", degree: "5", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "4", degree: "1", chord: "I" }] },
@@ -196,83 +199,54 @@
         } catch(e) { console.error(e); }
     };
 
-    // === User Presets Logic ===
-    function loadUserPresets() { const s=localStorage.getItem(STORAGE_KEY); if(s){try{userLibrary=JSON.parse(s)}catch(e){}} }
+    function loadUserPresets() { const s=localStorage.getItem(STORAGE_KEY); if(s){try{userLibrary=JSON.parse(s)}catch(e){} } }
     function setupUI() {
         const kSel = document.getElementById("keySelect");
-        keyCycle.forEach((k, i) => { let opt = document.createElement("option"); opt.value = i; opt.text = k; kSel.appendChild(opt); });
-        const pSel = document.getElementById("presetSelect");
-        defaultLibrary.forEach((lick, i) => { let opt = document.createElement("option"); opt.value = i; opt.text = lick.name; pSel.appendChild(opt); });
+        if(kSel.options.length === 0) {
+            keyCycle.forEach((k, i) => {
+                let opt = document.createElement("option"); opt.value = i; opt.text = k; kSel.appendChild(opt);
+            });
+        }
+        const pSel = document.getElementById("presetSelect"); pSel.innerHTML="";
+        defaultLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value=i;o.text=l.name;pSel.appendChild(o)});
         updateUserSelect();
     }
     function updateUserSelect() {
-        const uSel = document.getElementById("userSelect"); uSel.innerHTML = '<option value="" selected>-- 選択なし --</option>';
-        userLibrary.forEach((lick, i) => { let opt = document.createElement("option"); opt.value = "user-" + i; opt.text = lick.name; uSel.appendChild(opt); });
-        if(importedLick) { let opt = document.createElement("option"); opt.value = "import"; opt.text = importedLick.name; opt.style.color = "blue"; uSel.appendChild(opt); }
+        const uSel=document.getElementById("userSelect"); uSel.innerHTML='<option value="" selected>-- 選択なし --</option>';
+        userLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value="user-"+i;o.text=l.name;uSel.appendChild(o)});
+        if(importedLick){let o=document.createElement("option");o.value="import";o.text=importedLick.name;o.style.color="blue";uSel.appendChild(o);}
     }
-    function changePreset() {
-        let idx = document.getElementById("presetSelect").value;
-        AppState.currentLickBase = defaultLibrary[idx].data;
-        document.getElementById("userSelect").value = "";
-        updateGlobalData(AppState.currentKeyIndex);
-        renderAll();
-    }
-    function changeUser() {
-        let val = document.getElementById("userSelect").value;
-        if(val === "") return;
-        if(val === "import" && importedLick) AppState.currentLickBase = importedLick.data;
-        else if (val.startsWith("user-")) AppState.currentLickBase = userLibrary[parseInt(val.split("-")[1])].data;
-        updateGlobalData(AppState.currentKeyIndex);
-        renderAll();
-    }
-    function saveUserPreset() { const n=prompt("保存名:","My Lick"); if(n){userLibrary.push({name:"★ "+n,data:AppState.currentLickBase}); localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary)); updateUserSelect(); document.getElementById("userSelect").value="user-"+(userLibrary.length-1); alert("保存しました");} }
-    function deleteCurrentPreset() { const v=document.getElementById("userSelect").value; if(!v){alert("選択してください");return;} if(v==="import"){importedLick=null;updateUserSelect();changePreset();return;} if(confirm("削除しますか？")){userLibrary.splice(parseInt(v.split("-")[1]),1);localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary));updateUserSelect();changePreset();} }
-    function clearAllUserPresets() { if(confirm("全消去?")){localStorage.removeItem(STORAGE_KEY); userLibrary=[]; updateUserSelect(); changePreset();} }
+    function changePreset(){ let i=document.getElementById("presetSelect").value; AppState.currentLickBase=defaultLibrary[i].data; document.getElementById("userSelect").value=""; updateGlobalData(AppState.currentKeyIndex); renderAll(); }
+    function changeUser(){ let v=document.getElementById("userSelect").value; if(!v)return; if(v==="import")AppState.currentLickBase=importedLick.data; else AppState.currentLickBase=userLibrary[parseInt(v.split("-")[1])].data; updateGlobalData(AppState.currentKeyIndex); renderAll(); }
+    function saveUserPreset(){ const n=prompt("保存名:","My Lick"); if(n){userLibrary.push({name:"★ "+n,data:AppState.currentLickBase}); localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary)); updateUserSelect(); document.getElementById("userSelect").value="user-"+(userLibrary.length-1); alert("保存しました");} }
+    function deleteCurrentPreset(){ const v=document.getElementById("userSelect").value; if(!v){alert("選択してください");return;} if(v==="import"){importedLick=null;updateUserSelect();changePreset();return;} if(confirm("削除しますか？")){userLibrary.splice(parseInt(v.split("-")[1]),1);localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary));updateUserSelect();changePreset();}}
+    function clearAllUserPresets(){ if(confirm("全消去?")){localStorage.removeItem(STORAGE_KEY); userLibrary=[]; updateUserSelect(); changePreset();} }
+    function updateBpmDisplay(v){ document.getElementById("bpmDisplay").innerText=v; if(Tone.Transport.state==='started')Tone.Transport.bpm.rampTo(v,0.1); }
+    function changeKeyManual(){ updateGlobalData(parseInt(document.getElementById("keySelect").value)); renderAll(); }
 
-    // === ★ LOGIC: Alternating String & Fixed Box ★ ===
+    // === ★ Alternating Box Logic (Must be preserved) ★ ===
     function updateGlobalData(keyIdx) {
         AppState.currentKeyIndex = keyIdx;
         let keyName = keyCycle[keyIdx];
+        let targetKeyIndex = midiToNoteName.indexOf(keyName); 
         
-        // 1. Get Start String from UI (Default: 5)
+        // Determine Anchor String
         let startStr = parseInt(document.getElementById("rootStringSelect").value);
-        
-        // 2. Determine Target String for THIS key index
-        // Even (C, Bb...) -> startStr. Odd (F, Eb...) -> startStr - 1.
-        // Note: If startStr=4, alternating means 4 -> 3. 
-        // If startStr=6, alternating means 6 -> 5.
         let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
         if (targetStr < 1) targetStr = 1; 
 
-        // 3. Determine Fixed Anchor for this Key+String combination
-        let targetKeyIndex = midiToNoteName.indexOf(keyName); 
         let strBaseMidi = stringBaseMidi[targetStr]; 
-        
-        // "Fret" = Target - Base (mod 12)
         let anchorFret = (targetKeyIndex - (strBaseMidi % 12) + 12) % 12;
-        // Normalize to comfortable position (e.g. 3 to 14)
         if(anchorFret < 3) anchorFret += 12; 
-        if(anchorFret > 14) anchorFret -= 12;
-        
-        // +1 Oct Override
-        if (document.getElementById("octaveUp").checked) anchorFret += 12;
-        if (anchorFret > 20) anchorFret -= 12; // Safety cap
+        if(document.getElementById("octaveUp").checked) anchorFret += 12;
+        if(anchorFret > 20) anchorFret -= 12;
 
-        // 4. Shift MIDI Pitch
-        // Base Lick (C) center is approx C3 (48).
-        // Target Root = strBaseMidi + anchorFret.
-        // Shift = Target - 48.
         let targetRootMidi = strBaseMidi + anchorFret;
         let shift = targetRootMidi - 48; 
 
         let targetMidiNotes = AppState.currentLickBase.map(d => {
             let baseMidi = stringBaseMidi[d.string] + d.fret;
-            return { 
-                midi: baseMidi + shift, 
-                duration: d.duration, 
-                chord: d.chord,
-                degree: d.degree 
-            };
+            return { midi: baseMidi + shift, duration: d.duration, chord: d.chord, degree: d.degree };
         });
 
         AppState.currentLickData = optimizeFingering(targetMidiNotes, anchorFret);
@@ -284,10 +258,8 @@
 
     function optimizeFingering(notes, anchorFret) {
         let lick = [];
-        // Box Range: anchor - 2 to + 5
         let boxMin = anchorFret - 2;
         let boxMax = anchorFret + 5;
-
         notes.forEach((n) => {
             let candidates = [];
             for(let s=1; s<=6; s++) {
@@ -314,26 +286,22 @@
         return lick;
     }
 
-    // === Standard Stuff ===
-    function updateBpmDisplay(v) { document.getElementById("bpmDisplay").innerText=v; if(Tone.Transport.state==='started')Tone.Transport.bpm.rampTo(v,0.1); }
-    function changeKeyManual() { updateGlobalData(parseInt(document.getElementById("keySelect").value)); renderAll(); }
-    
+    // ... [Standard MIDI Import] ...
     function setupDropZone(){const d=document.getElementById("drop-zone");d.addEventListener("dragover",e=>{e.preventDefault();d.classList.add("highlight")});d.addEventListener("dragleave",()=>d.classList.remove("highlight"));d.addEventListener("drop",handleDrop);}
     async function handleDrop(e){e.preventDefault();document.getElementById("drop-zone").classList.remove("highlight");let f=e.dataTransfer.files[0];if(f){let b=await f.arrayBuffer();parseMidi(b,f.name);}}
-    function parseMidi(b,n){const m=new Midi(b);if(m.tracks.length===0)return;let t=m.tracks[0].notes.map(x=>({midi:x.midi,duration:x.duration>0.35?"4":"8",chord:""}));let o=optimizeFingering(t,5);if(o.length>0)o[0].chord="Start";importedLick={name:"📂 "+n,data:o};updateUserSelect();document.getElementById("userSelect").value="import";changeUser();}
+    function parseMidi(b,n){const m=new Midi(b);if(m.tracks.length===0)return;let notes=m.tracks[0].notes;let t=notes.map(x=>({midi:x.midi,duration:x.duration>0.35?"4":"8",chord:"",degree:degreeMap[x.midi%12]}));let o=optimizeFingering(t,5);if(o.length>0)o[0].chord="Start";importedLick={name:"📂 "+n,data:o};updateUserSelect();document.getElementById("userSelect").value="import";changeUser();}
 
+    // ... [Render] ...
     function renderAll() { renderManualNotation(); renderFretboard(); }
-
     function renderManualNotation() {
         const c=document.getElementById("notation-container"); c.innerHTML="";
-        const w=900,h=200; const ns="http://www.w3.org/2000/svg";
+        const w=900, h=200; const ns="http://www.w3.org/2000/svg";
         const svg=document.createElementNS(ns,"svg"); svg.setAttribute("width",w); svg.setAttribute("height",h);
         const topY=80, startX=70, gap=55;
         for(let i=0;i<5;i++){let y=topY+i*10;let l=document.createElementNS(ns,"line");l.setAttribute("x1",20);l.setAttribute("x2",w-20);l.setAttribute("y1",y);l.setAttribute("y2",y);l.setAttribute("class","stave-line");svg.appendChild(l);}
         let cl=document.createElementNS(ns,"text");cl.setAttribute("x",30);cl.setAttribute("y",topY+30);cl.setAttribute("font-size","45");cl.textContent="𝄞";svg.appendChild(cl);
         drawKeySignature(svg,ns,topY);
         drawDivider(svg,ns,startX+3.5*gap,topY,"solid"); drawDivider(svg,ns,startX+7*gap,topY,"bar"); drawDivider(svg,ns,startX+7*gap+40+0.8*gap,topY,"solid");
-        
         const steps={"C":0,"D":1,"E":2,"F":3,"G":4,"A":5,"B":6};
         AppState.currentLickData.forEach((d,i)=>{
             let x=startX+i*gap; if(i>=7)x+=40;
@@ -354,31 +322,58 @@
     function renderFretboard(){const c=document.getElementById("fretboard-container");c.innerHTML="";const w=950,h=180;const ns="http://www.w3.org/2000/svg";const svg=document.createElementNS(ns,"svg");svg.setAttribute("width",w);svg.setAttribute("height",h);const mx=30,my=20,sg=25,fg=38;for(let i=0;i<=24;i++){let x=mx+i*fg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",x);l.setAttribute("x2",x);l.setAttribute("y1",my);l.setAttribute("y2",my+5*sg);l.setAttribute("class",i===0?"string-line":"fret-line");if(i===0)l.setAttribute("stroke-width",5);svg.appendChild(l);if([3,5,7,9,12,15,17,19,21,24].includes(i)){let t=document.createElementNS(ns,"text");t.setAttribute("x",x-fg/2);t.setAttribute("y",h-5);t.textContent=i;t.setAttribute("fill","#aaa");t.setAttribute("text-anchor","middle");svg.appendChild(t);}}for(let s=0;s<6;s++){let y=my+s*sg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",mx);l.setAttribute("x2",mx+24*fg);l.setAttribute("y1",y);l.setAttribute("y2",y);l.setAttribute("class","string-line");svg.appendChild(l);}AppState.currentLickData.forEach((d,i)=>{let cx=mx+d.fret*fg-fg/2;let cy=my+(d.string-1)*sg;let g=document.createElementNS(ns,"g");g.setAttribute("id","note-group-"+i);let c=document.createElementNS(ns,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",12);c.setAttribute("class","note-circle");c.onclick=()=>{if(!synth)initAudio();Tone.start();playNoteByMidi(d.midi,d.duration)};g.appendChild(c);let t=document.createElementNS(ns,"text");t.setAttribute("x",cx);t.setAttribute("y",cy+1);t.setAttribute("class","note-text");t.textContent=(AppState.displayMode==="noteName")?d.noteName:(d.degree||"?");g.appendChild(t);svg.appendChild(g);});c.appendChild(svg);}
     function toggleDisplayMode(){AppState.displayMode=(AppState.displayMode==="noteName")?"degree":"noteName";renderFretboard();}
 
-    async function initAudio(){if(synth)return;synth=new Tone.Synth({oscillator:{type:"triangle"}}).toDestination();synth.volume.value=-6;clickSynth=new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.001,decay:0.05,sustain:0,release:0.05}}).toDestination();clickSynth.volume.value=-10;await Tone.start();}
+    // === Audio & Safe Start ===
+    async function initAudio(){if(synth)return;synth=new Tone.Synth({oscillator:{type:"triangle"}}).toDestination();synth.volume.value=-6;clickSynth=new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.001,decay:0.05,sustain:0}}).toDestination();clickSynth.volume.value=-10;await Tone.start();}
     function playNoteByMidi(m,d){let f=Tone.Frequency(m,"midi");let dc=(d==="8")?"8n":"4n";synth.triggerAttackRelease(f,dc);}
 
-    async function startSequence() {
+    async function startSequence(){
         if(AppState.isPlaying)return;
-        await initAudio();
-        AppState.isPlaying=true;
-        document.getElementById("playBtn").disabled=true; document.getElementById("stopBtn").disabled=false;
-        document.getElementById("keySelect").disabled=true; document.getElementById("presetSelect").disabled=true; 
-        document.getElementById("userSelect").disabled=true; document.getElementById("octaveUp").disabled=true; document.getElementById("rootStringSelect").disabled=true;
-        
-        Tone.Transport.bpm.value = document.getElementById("bpmInput").value;
-        Tone.Transport.stop(); Tone.Transport.cancel(); Tone.Transport.position=0;
-        scheduleNextCycle(0, AppState.currentKeyIndex);
-        Tone.Transport.start();
+        try {
+            await initAudio();
+            await Tone.start();
+            AppState.isPlaying=true;
+            document.getElementById("playBtn").disabled=true; document.getElementById("stopBtn").disabled=false;
+            document.getElementById("keySelect").disabled=true; document.getElementById("presetSelect").disabled=true; 
+            document.getElementById("userSelect").disabled=true; document.getElementById("octaveUp").disabled=true; document.getElementById("rootStringSelect").disabled=true;
+            
+            Tone.Transport.bpm.value=document.getElementById("bpmInput").value;
+            Tone.Transport.stop(); 
+            Tone.Transport.cancel();
+            
+            scheduleNextCycle(0, AppState.currentKeyIndex);
+            Tone.Transport.start();
+        } catch(e) {
+            alert("再生エラー: " + e);
+            stopSequence();
+        }
     }
-    function stopSequence() {
+    function stopSequence(){
         AppState.isPlaying=false;
-        try{ Tone.Transport.stop(); Tone.Transport.cancel(); if(synth)synth.releaseAll(); }catch(e){}
+        try{Tone.Transport.stop();Tone.Transport.cancel();if(synth)synth.releaseAll();}catch(e){}
         document.querySelectorAll('.active-note,.active-staff-note').forEach(e=>e.classList.remove('active-note','active-staff-note'));
         document.getElementById("playBtn").disabled=false; document.getElementById("stopBtn").disabled=true;
         document.getElementById("keySelect").disabled=false; document.getElementById("presetSelect").disabled=false; 
         document.getElementById("userSelect").disabled=false; document.getElementById("octaveUp").disabled=false; document.getElementById("rootStringSelect").disabled=false;
     }
-    function scheduleNextCycle(st,kIdx){if(!AppState.isPlaying)return;updateGlobalData(kIdx);renderAll();const bb=document.getElementById("backbeatMode").checked;for(let i=0;i<8;i++){if(bb&&i%2===0)continue;Tone.Transport.schedule(t=>clickSynth.triggerAttackRelease("C6","32n",t),st+i*Tone.Time("4n").toSeconds());}let cur=st;AppState.currentLickData.forEach((d,i)=>{let dc=(d.duration==="8")?"8n":"4n";let ds=Tone.Time(dc).toSeconds();Tone.Transport.schedule(t=>{synth.triggerAttackRelease(Tone.Frequency(d.midi,"midi"),dc,t);Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.add("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.add("active-staff-note");},t);Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.remove("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.remove("active-staff-note");},t+ds-0.05);},cur);cur+=ds;});let dur=8*Tone.Time("4n").toSeconds();let nk=document.getElementById("cycleMode").checked?(kIdx+1)%12:kIdx;Tone.Transport.schedule(()=>{scheduleNextCycle(st+dur,nk);},st+dur-0.1);}
+    function scheduleNextCycle(st,kIdx){
+        if(!AppState.isPlaying)return;
+        updateGlobalData(kIdx); renderAll();
+        const bb=document.getElementById("backbeatMode").checked;
+        for(let i=0;i<8;i++){if(bb&&i%2===0)continue;Tone.Transport.schedule(t=>clickSynth.triggerAttackRelease("C6","32n",t),st+i*Tone.Time("4n").toSeconds());}
+        let cur=st;
+        AppState.currentLickData.forEach((d,i)=>{
+            let dc=(d.duration==="8")?"8n":"4n";let ds=Tone.Time(dc).toSeconds();
+            Tone.Transport.schedule(t=>{
+                synth.triggerAttackRelease(Tone.Frequency(d.midi,"midi"),dc,t);
+                Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.add("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.add("active-staff-note");},t);
+                Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.remove("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.remove("active-staff-note");},t+ds-0.05);
+            },cur);
+            cur+=ds;
+        });
+        let dur=8*Tone.Time("4n").toSeconds();
+        let nk=document.getElementById("cycleMode").checked?(kIdx+1)%12:kIdx;
+        Tone.Transport.schedule(()=>{scheduleNextCycle(st+dur,nk);},st+dur-0.1);
+    }
 </script>
 </body>
 </html>
