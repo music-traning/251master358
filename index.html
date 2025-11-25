@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Jazz Lick Trainer (Final Version)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #eef2f3; text-align: center; color: #333; }
+        .container { 
+            display: inline-block; background: white; padding: 20px; border-radius: 10px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 95%; width: 980px;
+        }
+        .status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .key-display { font-size: 1.5rem; font-weight: bold; color: #d32f2f; }
+        
+        #drop-zone {
+            border: 2px dashed #aaa; border-radius: 8px; padding: 10px; margin-bottom: 15px;
+            background: #fafafa; color: #666; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
+        }
+        #drop-zone.highlight { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        
+        #notation-container { 
+            background: #fff; border-radius: 8px; margin-bottom: 10px; overflow: hidden;
+            border: 1px solid #ddd; height: 200px; display: flex; justify-content: center;
+        }
+        #fretboard-container { background: #3e2723; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 10px; }
+        
+        .control-panel { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0; display: flex; flex-direction: column; gap: 15px; align-items: center;}
+        .control-row { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; justify-content: center; width: 100%; }
+        
+        .select-group { display: flex; flex-direction: column; gap: 5px; text-align: left; }
+        .select-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
+        
+        .area-preset { background: #fffde7; padding: 8px; border-radius: 5px; border: 1px solid #fff9c4; }
+        .area-user { background: #e3f2fd; padding: 8px; border-radius: 5px; border: 1px solid #bbdefb; display: flex; gap: 5px; align-items: flex-end;}
+
+        select { padding: 6px; font-size: 0.95rem; border-radius: 4px; border: 1px solid #ccc; min-width: 200px; font-weight: bold; }
+        
+        button { padding: 6px 12px; cursor: pointer; color: white; border: none; border-radius: 4px; font-size: 0.9rem; font-weight: bold; transition: opacity 0.2s; }
+        button:hover { opacity: 0.8; }
+        button:disabled { background: #ccc; cursor: not-allowed; opacity: 0.5; }
+        
+        .btn-play { background: #2e7d32; padding: 8px 30px; font-size: 1rem; } 
+        .btn-stop { background: #c62828; padding: 8px 30px; font-size: 1rem; } 
+        .btn-mode { background: #1976d2; }
+        .btn-save { background: #f57c00; }
+        .btn-del { background: #d32f2f; }
+        .btn-reset { background: #607d8b; font-size: 0.8rem; }
+
+        input[type=range] { width: 120px; cursor: pointer; }
+
+        /* Footer Style */
+        .footer {
+            margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;
+            font-size: 0.9rem; color: #777;
+        }
+        .footer a { color: #333; text-decoration: none; font-weight: bold; transition: color 0.2s; }
+        .footer a:hover { text-decoration: underline; color: #d32f2f; }
+
+        /* SVG Styles */
+        .string-line { stroke: #bcaaa4; stroke-width: 2; }
+        .fret-line { stroke: #8d6e63; stroke-width: 3; }
+        .note-circle { fill: #ff9800; stroke: #fff; stroke-width: 2; cursor: pointer; transition: fill 0.05s; }
+        .active-note { fill: #ffff00 !important; stroke: #ff3d00 !important; stroke-width: 4 !important; r: 14 !important; }
+        .note-text { font-family: Arial; font-weight: bold; font-size: 11px; text-anchor: middle; dominant-baseline: middle; fill: white; pointer-events: none;}
+        
+        .stave-line { stroke: #999; stroke-width: 1; }
+        .bar-line { stroke: #333; stroke-width: 2; }
+        .solid-divider { stroke: #000; stroke-width: 2; }
+        .stem { stroke: #000; stroke-width: 2; }
+        .note-head { fill: #000; transition: fill 0.05s; }
+        .active-staff-note { fill: #ff0000 !important; stroke: #ff0000; stroke-width: 1px; r: 7px !important; }
+        .ledger-line { stroke: #000; stroke-width: 1; }
+        .chord-text { font-family: "Times New Roman", serif; font-size: 20px; font-weight: bold; fill: #d32f2f; }
+        .accidental { font-family: "Times New Roman", serif; font-size: 24px; fill: #000; }
+        .key-sig { font-family: "Times New Roman", serif; font-size: 24px; fill: #000; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="status-bar">
+        <div>Jazz Lick Trainer (Completed)</div>
+        <div class="key-display" id="currentKeyDisplay">Key: C</div>
+    </div>
+    
+    <div id="drop-zone">MIDIファイルをドロップ (自動運指・5小節以内)</div>
+    <div id="notation-container"></div>
+
+    <div class="control-panel">
+        <div class="control-row">
+            <div class="select-group area-preset">
+                <label>📖 内蔵プリセット</label>
+                <select id="presetSelect" onchange="changePreset()"></select>
+            </div>
+            <div style="color:#aaa; font-weight:bold; align-self:center; padding-bottom:10px;">OR</div>
+            <div class="area-user">
+                <div class="select-group">
+                    <label>👤 ユーザー / Import</label>
+                    <select id="userSelect" onchange="changeUser()">
+                        <option value="" selected>-- 選択なし --</option>
+                    </select>
+                </div>
+                <button class="btn-save" onclick="saveUserPreset()">保存</button>
+                <button class="btn-del" onclick="deleteCurrentPreset()">削除</button>
+            </div>
+            <button class="btn-reset" onclick="clearAllUserPresets()" style="align-self: center; margin-left: 10px;">全消去</button>
+        </div>
+
+        <hr style="width:95%; border:0; border-top:1px solid #ddd;">
+
+        <div class="control-row">
+            <div class="select-group">
+                <label>Key</label>
+                <select id="keySelect" onchange="changeKeyManual()" style="width:80px;"></select>
+            </div>
+            
+            <div class="select-group">
+                <label>Start String</label>
+                <select id="rootStringSelect" onchange="changeKeyManual()" style="width:110px; background:#e0f7fa; font-weight:bold;">
+                    <option value="6">6弦 (Low)</option>
+                    <option value="5" selected>5弦 (Mid)</option>
+                    <option value="4">4弦 (High)</option>
+                </select>
+            </div>
+
+            <div class="select-group">
+                <label>BPM: <span id="bpmDisplay">60</span></label>
+                <input type="range" id="bpmInput" value="60" min="40" max="240" style="width:120px;" oninput="updateBpmDisplay(this.value)">
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: center; background: #fff; padding: 5px 10px; border-radius: 5px; border: 1px solid #ddd; height: 40px;">
+                <label style="cursor:pointer;"><input type="checkbox" id="cycleMode" checked> Cycle</label>
+                <label style="cursor:pointer; color: #d32f2f;"><input type="checkbox" id="octaveUp" onchange="changeKeyManual()"> <b>+1 Oct</b></label>
+                <label style="cursor:pointer;"><input type="checkbox" id="backbeatMode"> 2&4</label>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <button id="playBtn" class="btn-play" onclick="startSequence()">▶ Start</button>
+            <button id="stopBtn" class="btn-stop" onclick="stopSequence()" disabled>■ Stop</button>
+            <button class="btn-mode" onclick="toggleDisplayMode()">Display Mode</button>
+        </div>
+    </div>
+    <div id="fretboard-container"><div id="fretboard"></div></div>
+    
+    <div class="footer">
+        Special Thanks To <a href="https://toshikinunokawa.com/online-salon/" target="_blank" rel="noopener noreferrer">Toshiki Nunokawa Online Salon</a>
+    </div>
+</div>
+
+<script>
+    const keyCycle = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"];
+    const STORAGE_KEY = "jazzLickUserPresets_vFinal"; 
+    const stringBaseMidi = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
+    const midiToNoteName = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    const keySignatures = { "C": {n:0,t:"f"}, "F": {n:1,t:"f"}, "Bb": {n:2,t:"f"}, "Eb": {n:3,t:"f"}, "Ab": {n:4,t:"f"}, "Db": {n:5,t:"f"}, "Gb": {n:6,t:"f"}, "B": {n:5,t:"s"}, "E": {n:4,t:"s"}, "A": {n:3,t:"s"}, "D": {n:2,t:"s"}, "G": {n:1,t:"s"} };
+
+    const defaultLibrary = [
+        { name: "1. Basic Smooth", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "2", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "" },{ noteName: "A", string: 4, fret: 7, duration: "8", degree: "5", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "8", degree: "b7", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "8", degree: "3", chord: "V" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", degree: "b9", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "4", degree: "5", chord: "" },{ noteName: "E", string: 5, fret: 7, duration: "4", degree: "3", chord: "I" }] },
+        { name: "2. 9th Descent", data: [{ noteName: "E", string: 5, fret: 7, duration: "8", degree: "9", chord: "II" },{ noteName: "C", string: 5, fret: 3, duration: "8", degree: "b7", chord: "" },{ noteName: "A", string: 6, fret: 5, duration: "8", degree: "5", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", degree: "b3", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", degree: "b7", chord: "V" },{ noteName: "E", string: 6, fret: 0, duration: "8", degree: "13", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "4", degree: "5", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "4", degree: "1", chord: "I" }] },
+        { name: "3. Lydian Resolution", data: [{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "II" },{ noteName: "E", string: 4, fret: 2, duration: "8", degree: "2", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "1", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "8", degree: "b7", chord: "" },{ noteName: "B", string: 5, fret: 2, duration: "8", degree: "3", chord: "V" },{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "5", chord: "" },{ noteName: "F", string: 4, fret: 3, duration: "4", degree: "b7", chord: "" },{ noteName: "E", string: 4, fret: 2, duration: "4", degree: "3", chord: "I" }] },
+        { name: "4. Altered Tension", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "1", chord: "II" },{ noteName: "E", string: 5, fret: 7, duration: "8", degree: "9", chord: "" },{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "8", degree: "11", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", degree: "b9", chord: "V" },{ noteName: "Bb", string: 3, fret: 3, duration: "8", degree: "#9", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "4", degree: "3", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", degree: "1", chord: "I" }] },
+        { name: "5. Parker Enclosure", data: [{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "II" },{ noteName: "E", string: 4, fret: 2, duration: "8", degree: "2", chord: "" },{ noteName: "Eb", string: 4, fret: 1, duration: "8", degree: "b2", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "1", chord: "" },{ noteName: "Db", string: 5, fret: 4, duration: "8", degree: "#11", chord: "V" },{ noteName: "C", string: 5, fret: 3, duration: "8", degree: "11", chord: "" },{ noteName: "B", string: 5, fret: 2, duration: "4", degree: "3", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "4", degree: "1", chord: "I" }] },
+        { name: "6. Bebop Dominant", data: [{ noteName: "C", string: 5, fret: 3, duration: "8", degree: "b7", chord: "II" },{ noteName: "A", string: 6, fret: 5, duration: "8", degree: "5", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", degree: "b3", chord: "" },{ noteName: "D", string: 6, fret: 10, duration: "8", degree: "1", chord: "" },{ noteName: "G", string: 6, fret: 3, duration: "8", degree: "1", chord: "V" },{ noteName: "B", string: 5, fret: 2, duration: "8", degree: "3", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "4", degree: "5", chord: "" },{ noteName: "E", string: 5, fret: 7, duration: "4", degree: "3", chord: "I" }] },
+        { name: "7. Honeysuckle Arpeggio", data: [{ noteName: "C", string: 5, fret: 3, duration: "8", degree: "b7", chord: "II" },{ noteName: "B", string: 5, fret: 2, duration: "8", degree: "13", chord: "" },{ noteName: "Bb", string: 5, fret: 1, duration: "8", degree: "b13", chord: "" },{ noteName: "A", string: 6, fret: 5, duration: "8", degree: "5", chord: "" },{ noteName: "Ab", string: 6, fret: 4, duration: "8", degree: "b9", chord: "V" },{ noteName: "G", string: 6, fret: 3, duration: "8", degree: "1", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "4", degree: "b7", chord: "" },{ noteName: "E", string: 6, fret: 0, duration: "4", degree: "3", chord: "I" }] },
+        { name: "8. Chromatic Approach", data: [{ noteName: "E", string: 5, fret: 7, duration: "8", degree: "9", chord: "II" },{ noteName: "Eb", string: 5, fret: 6, duration: "8", degree: "b9", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "1", chord: "" },{ noteName: "Db", string: 5, fret: 4, duration: "8", degree: "7", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "8", degree: "11", chord: "V" },{ noteName: "B", string: 5, fret: 2, duration: "8", degree: "3", chord: "" },{ noteName: "Bb", string: 5, fret: 1, duration: "4", degree: "#9", chord: "" },{ noteName: "B", string: 5, fret: 2, duration: "4", degree: "7", chord: "I" }] },
+        { name: "9. 1-2-3-5 Pattern", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "1", chord: "II" },{ noteName: "E", string: 5, fret: 7, duration: "8", degree: "2", chord: "" },{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "" },{ noteName: "A", string: 4, fret: 7, duration: "8", degree: "5", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "8", degree: "1", chord: "V" },{ noteName: "A", string: 4, fret: 7, duration: "8", degree: "2", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "4", degree: "3", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", degree: "1", chord: "I" }] },
+        { name: "10. Sheets of Sound", data: [{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "II" },{ noteName: "A", string: 4, fret: 7, duration: "8", degree: "5", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "8", degree: "b7", chord: "" },{ noteName: "E", string: 2, fret: 5, duration: "8", degree: "9", chord: "" },{ noteName: "Eb", string: 2, fret: 4, duration: "8", degree: "b13", chord: "V" },{ noteName: "B", string: 3, fret: 4, duration: "8", degree: "3", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "4", degree: "1", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", degree: "1", chord: "I" }] },
+        { name: "11. Whole Tone V", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "1", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", degree: "b5", chord: "" },{ noteName: "Bb", string: 3, fret: 3, duration: "8", degree: "#9", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "8", degree: "3", chord: "V" },{ noteName: "Db", string: 2, fret: 2, duration: "8", degree: "#11", chord: "" },{ noteName: "Eb", string: 2, fret: 4, duration: "4", degree: "b13", chord: "" },{ noteName: "E", string: 1, fret: 0, duration: "4", degree: "3", chord: "I" }] },
+        { name: "12. Diminished V", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", degree: "1", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", degree: "b3", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", degree: "b9", chord: "V" },{ noteName: "B", string: 3, fret: 4, duration: "8", degree: "3", chord: "" },{ noteName: "D", string: 3, fret: 7, duration: "8", degree: "5", chord: "" },{ noteName: "F", string: 2, fret: 6, duration: "8", degree: "b7", chord: "" },{ noteName: "G", string: 1, fret: 3, duration: "4", degree: "1", chord: "" },{ noteName: "C", string: 2, fret: 1, duration: "4", degree: "1", chord: "I" }] },
+    ];
+
+    let userLibrary = [];
+    let importedLick = null;
+    let synth = null;
+    let clickSynth = null;
+
+    const AppState = {
+        currentKeyIndex: 0,
+        currentLickBase: defaultLibrary[0].data,
+        currentLickData: [],
+        currentHandPos: 5,
+        isPlaying: false,
+        displayMode: "noteName"
+    };
+
+    window.onload = () => {
+        loadUserPresets();
+        setupUI();
+        setupDropZone();
+        updateGlobalData(0); 
+        renderAll();
+    };
+
+    // ... [User/Preset logic] ...
+    function loadUserPresets() { const s=localStorage.getItem(STORAGE_KEY); if(s){try{userLibrary=JSON.parse(s)}catch(e){}} }
+    function setupUI() {
+        const kSel=document.getElementById("keySelect");
+        if(kSel.options.length===0) keyCycle.forEach((k,i)=>{let o=document.createElement("option");o.value=i;o.text=k;kSel.appendChild(o)});
+        const pSel=document.getElementById("presetSelect"); pSel.innerHTML="";
+        defaultLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value=i;o.text=l.name;pSel.appendChild(o)});
+        updateUserSelect();
+    }
+    function updateUserSelect() {
+        const uSel=document.getElementById("userSelect"); uSel.innerHTML='<option value="" selected>-- 選択なし --</option>';
+        userLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value="user-"+i;o.text=l.name;uSel.appendChild(o)});
+        if(importedLick){let o=document.createElement("option");o.value="import";o.text=importedLick.name;o.style.color="blue";uSel.appendChild(o);}
+    }
+    function changePreset(){ let i=document.getElementById("presetSelect").value; AppState.currentLickBase=defaultLibrary[i].data; document.getElementById("userSelect").value=""; updateGlobalData(AppState.currentKeyIndex); renderAll(); }
+    function changeUser(){ 
+        let v=document.getElementById("userSelect").value; if(!v)return; 
+        if(v==="import") AppState.currentLickBase=importedLick.data; 
+        else AppState.currentLickBase=userLibrary[parseInt(v.split("-")[1])].data; 
+        updateGlobalData(AppState.currentKeyIndex); renderAll();
+    }
+    function saveUserPreset(){ const n=prompt("保存名:","My Lick"); if(!n)return; userLibrary.push({name:"★ "+n,data:AppState.currentLickBase}); localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary)); updateUserSelect(); document.getElementById("userSelect").value="user-"+(userLibrary.length-1); alert("保存しました"); }
+    function deleteCurrentPreset(){ const v=document.getElementById("userSelect").value; if(!v||v==="import"){if(v==="import"){importedLick=null; updateUserSelect(); changePreset();} return;} if(confirm("削除しますか？")){userLibrary.splice(parseInt(v.split("-")[1]),1); localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary)); updateUserSelect(); changePreset();}}
+    function clearAllUserPresets(){ if(confirm("全消去しますか？")){localStorage.removeItem(STORAGE_KEY); userLibrary=[]; updateUserSelect(); changePreset();} }
+    function updateBpmDisplay(v){ document.getElementById("bpmDisplay").innerText=v; if(Tone.Transport.state==='started')Tone.Transport.bpm.rampTo(v,0.1); }
+    function changeKeyManual(){ updateGlobalData(parseInt(document.getElementById("keySelect").value)); renderAll(); }
+
+    // === ★ CORE LOGIC: Alternating String Roots ★ ===
+    function updateGlobalData(keyIdx) {
+        AppState.currentKeyIndex = keyIdx;
+        let keyName = keyCycle[keyIdx];
+        let startStr = parseInt(document.getElementById("rootStringSelect").value);
+        
+        // Logic: Even index (C, Bb) -> StartStr. Odd index (F, Eb) -> StartStr - 1.
+        let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
+        if (targetStr < 1) targetStr = 1; 
+
+        // Calculate Fixed Anchor based on target string and key
+        let targetKeyIndex = midiToNoteName.indexOf(keyName); 
+        let strBaseMidi = stringBaseMidi[targetStr]; 
+        let anchorFret = (targetKeyIndex - (strBaseMidi % 12) + 12) % 12;
+        
+        if (anchorFret < 3) anchorFret += 12; 
+        if (document.getElementById("octaveUp").checked) anchorFret += 12;
+        if (anchorFret > 20) anchorFret -= 12;
+
+        // Calculate Pitch Shift
+        let targetRootMidi = strBaseMidi + anchorFret;
+        let shift = targetRootMidi - 48; // 48 = C3 (5th str, 3rd fret)
+
+        let targetMidiNotes = AppState.currentLickBase.map(d => {
+            let baseMidi = stringBaseMidi[d.string] + d.fret;
+            return { midi: baseMidi + shift, duration: d.duration, chord: d.chord };
+        });
+
+        AppState.currentLickData = optimizeFingering(targetMidiNotes, anchorFret);
+        AppState.currentHandPos = anchorFret;
+
+        document.getElementById("currentKeyDisplay").innerText = "Key: " + keyName;
+        document.getElementById("keySelect").value = keyIdx;
+    }
+
+    function optimizeFingering(notes, anchorFret) {
+        let lick = [];
+        let boxMin = anchorFret - 2;
+        let boxMax = anchorFret + 5;
+
+        notes.forEach((n, i) => {
+            let candidates = [];
+            for(let s=1; s<=6; s++) {
+                let f = n.midi - stringBaseMidi[s];
+                if(f >= 0 && f <= 24) candidates.push({string: s, fret: f});
+            }
+            if(candidates.length > 0) {
+                candidates.sort((a, b) => {
+                    let costA = Math.abs(a.fret - anchorFret);
+                    let costB = Math.abs(b.fret - anchorFret);
+                    if(a.fret < boxMin || a.fret > boxMax) costA += 100;
+                    if(b.fret < boxMin || b.fret > boxMax) costB += 100;
+                    return costA - costB;
+                });
+                let best = candidates[0];
+                let nameIdx = n.midi % 12;
+                let oct = Math.floor((n.midi+12)/12) - 1;
+                lick.push({
+                    noteName: midiToNoteName[nameIdx], octave: oct, midi: n.midi,
+                    string: best.string, fret: best.fret, duration: n.duration, chord: n.chord
+                });
+            }
+        });
+        return lick;
+    }
+
+    // ... [Render & Audio] ...
+    function renderAll(){renderManualNotation();renderFretboard();}
+    function renderManualNotation(){const c=document.getElementById("notation-container");c.innerHTML="";const w=900,h=200;const ns="http://www.w3.org/2000/svg";const svg=document.createElementNS(ns,"svg");svg.setAttribute("width",w);svg.setAttribute("height",h);const ty=80,sx=70,gp=55;for(let i=0;i<5;i++){let y=ty+i*10;let l=document.createElementNS(ns,"line");l.setAttribute("x1",20);l.setAttribute("x2",w-20);l.setAttribute("y1",y);l.setAttribute("y2",y);l.setAttribute("class","stave-line");svg.appendChild(l);}let cl=document.createElementNS(ns,"text");cl.setAttribute("x",30);cl.setAttribute("y",ty+30);cl.setAttribute("font-size","45");cl.textContent="𝄞";svg.appendChild(cl);drawKeySignature(svg,ns,ty);drawDivider(svg,ns,sx+3.5*gp,ty,"solid");drawDivider(svg,ns,sx+7*gp,ty,"bar");drawDivider(svg,ns,sx+7*gp+40+0.8*gp,ty,"solid");const steps={"C":0,"D":1,"E":2,"F":3,"G":4,"A":5,"B":6};AppState.currentLickData.forEach((d,i)=>{let x=sx+i*gp;if(i>=7)x+=40;let nv=steps[d.noteName.substring(0,1)];let as=d.octave*7+nv;let f5=5*7+3;let cy=ty+(f5-as)*5;if(d.chord){let t=document.createElementNS(ns,"text");let l=d.chord;if(l.length<=2&&l!=="Start")l=getTransposedChordName(l);t.setAttribute("x",x);t.setAttribute("y",ty-25);t.setAttribute("class","chord-text");t.setAttribute("text-anchor","middle");t.textContent=l;svg.appendChild(t);}if(f5-as>=10||f5-as<=-2){let ly=cy;if((f5-as)%2!==0)ly=(f5-as>0)?cy-5:cy+5;let ll=document.createElementNS(ns,"line");ll.setAttribute("x1",x-12);ll.setAttribute("x2",x+12);ll.setAttribute("y1",ly);ll.setAttribute("y2",ly);ll.setAttribute("class","ledger-line");svg.appendChild(ll);}let hd=document.createElementNS(ns,"ellipse");hd.setAttribute("id","staff-note-"+i);hd.setAttribute("cx",x);hd.setAttribute("cy",cy);hd.setAttribute("rx",6);hd.setAttribute("ry",4.5);hd.setAttribute("transform",`rotate(-20 ${x} ${cy})`);hd.setAttribute("class","note-head");svg.appendChild(hd);if(isAccidentalNeeded(d.noteName)){let ac=document.createElementNS(ns,"text");ac.setAttribute("x",x-16);ac.setAttribute("y",cy+6);ac.setAttribute("class","accidental");let s=d.noteName.includes("b")?"♭":(d.noteName.includes("#")?"♯":"♮");ac.textContent=s;svg.appendChild(ac);}let se=cy-30;let sX=x+5;if(cy<80){se=cy+30;sX=x-5;}let st=document.createElementNS(ns,"line");st.setAttribute("x1",sX);st.setAttribute("y1",cy);st.setAttribute("x2",sX);st.setAttribute("y2",se);st.setAttribute("class","stem");svg.appendChild(st);if(d.duration==="8"){let fl=document.createElementNS(ns,"path");let p=(cy<80)?`M ${sX} ${se} Q ${sX+8} ${se-10} ${sX+8} ${se-20}`:`M ${sX} ${se} Q ${sX+8} ${se+10} ${sX+8} ${se+20}`;fl.setAttribute("d",p);fl.setAttribute("stroke","black");fl.setAttribute("stroke-width",2);fl.setAttribute("fill","none");svg.appendChild(fl);}});c.appendChild(svg);}
+    function drawDivider(svg,ns,x,y,t){let l=document.createElementNS(ns,"line");l.setAttribute("x1",x);l.setAttribute("x2",x);l.setAttribute("y1",y);l.setAttribute("y2",y+40);l.setAttribute("class",t==="bar"?"bar-line":"solid-divider");svg.appendChild(l);}
+    function drawKeySignature(svg,ns,topY){let k=keyCycle[AppState.currentKeyIndex];let sig=keySignatures[k];if(!sig||sig.n===0)return;let fs=[4,1,5,2,6,3],ss=[0,3,-1,2,5];let steps=sig.t==="f"?fs:ss;let sym=sig.t==="f"?"♭":"♯";for(let i=0;i<sig.n;i++){let y=topY+steps[i]*5;let t=document.createElementNS(ns,"text");t.setAttribute("x",35+i*10);t.setAttribute("y",y+6);t.setAttribute("class","accidental");t.textContent=sym;svg.appendChild(t);}}
+    function isAccidentalNeeded(n){return n.length>1;}
+    function getTransposedChordName(t){if(!["II","V","I","VI"].includes(t))return t;let r=midiToNoteName.indexOf(keyCycle[AppState.currentKeyIndex]);let sh={"II":2,"V":7,"I":0,"VI":9}[t];return midiToNoteName[(r+sh)%12]+{"II":"m7","V":"7","I":"maj7","VI":"7"}[t];}
+    function renderFretboard(){const c=document.getElementById("fretboard-container");c.innerHTML="";const w=950,h=180;const ns="http://www.w3.org/2000/svg";const svg=document.createElementNS(ns,"svg");svg.setAttribute("width",w);svg.setAttribute("height",h);const mx=30,my=20,sg=25,fg=38;for(let i=0;i<=24;i++){let x=mx+i*fg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",x);l.setAttribute("x2",x);l.setAttribute("y1",my);l.setAttribute("y2",my+5*sg);l.setAttribute("class",i===0?"string-line":"fret-line");if(i===0)l.setAttribute("stroke-width",5);svg.appendChild(l);if([3,5,7,9,12,15,17,19,21,24].includes(i)){let t=document.createElementNS(ns,"text");t.setAttribute("x",x-fg/2);t.setAttribute("y",h-5);t.textContent=i;t.setAttribute("fill","#aaa");t.setAttribute("text-anchor","middle");svg.appendChild(t);}}for(let s=0;s<6;s++){let y=my+s*sg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",mx);l.setAttribute("x2",mx+24*fg);l.setAttribute("y1",y);l.setAttribute("y2",y);l.setAttribute("class","string-line");svg.appendChild(l);}AppState.currentLickData.forEach((d,i)=>{let cx=mx+d.fret*fg-fg/2;let cy=my+(d.string-1)*sg;let g=document.createElementNS(ns,"g");g.setAttribute("id","note-group-"+i);let c=document.createElementNS(ns,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",12);c.setAttribute("class","note-circle");c.onclick=()=>{if(!synth)initAudio();Tone.start();playNoteByMidi(d.midi,d.duration)};g.appendChild(c);let t=document.createElementNS(ns,"text");t.setAttribute("x",cx);t.setAttribute("y",cy+1);t.setAttribute("class","note-text");t.textContent=(AppState.displayMode==="noteName")?d.noteName:d.degree;g.appendChild(t);svg.appendChild(g);});c.appendChild(svg);}
+    function toggleDisplayMode(){AppState.displayMode=(AppState.displayMode==="noteName")?"degree":"noteName";renderFretboard();}
+
+    function setupDropZone(){const d=document.getElementById("drop-zone");d.addEventListener("dragover",e=>{e.preventDefault();d.classList.add("highlight")});d.addEventListener("dragleave",()=>d.classList.remove("highlight"));d.addEventListener("drop",handleDrop);}
+    async function handleDrop(e){e.preventDefault();document.getElementById("drop-zone").classList.remove("highlight");let f=e.dataTransfer.files[0];if(f&&(f.name.endsWith(".mid")||f.type.includes("midi"))){let b=await f.arrayBuffer();parseMidi(b,f.name);}}
+    function parseMidi(b,n){const m=new Midi(b);if(m.tracks.length===0)return;let t=m.tracks[0].notes.map(x=>({midi:x.midi,duration:x.duration>0.35?"4":"8",chord:""}));let o=optimizeFingering(t,5);if(o.length>0)o[0].chord="Start";importedLick={name:"📂 "+n,data:o};updateUserSelect();document.getElementById("userSelect").value="import";changeUser();}
+
+    async function initAudio() { if(synth) return; synth=new Tone.Synth({oscillator:{type:"triangle"}}).toDestination(); synth.volume.value=-6; clickSynth=new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.001,decay:0.05,sustain:0}}).toDestination(); clickSynth.volume.value=-10; await Tone.start(); }
+    function playNoteByMidi(m,d){let f=Tone.Frequency(m,"midi");let dc=(d==="8")?"8n":"4n";synth.triggerAttackRelease(f,dc);}
+    async function startSequence(){if(AppState.isPlaying)return;await initAudio();AppState.isPlaying=true;document.getElementById("playBtn").disabled=true;document.getElementById("stopBtn").disabled=false;Tone.Transport.bpm.value=document.getElementById("bpmInput").value;Tone.Transport.stop();Tone.Transport.cancel();scheduleNextCycle(0,AppState.currentKeyIndex);Tone.Transport.start();}
+    function stopSequence(){AppState.isPlaying=false;try{Tone.Transport.stop();Tone.Transport.cancel();if(synth)synth.releaseAll();}catch(e){}document.querySelectorAll('.active-note,.active-staff-note').forEach(e=>e.classList.remove('active-note','active-staff-note'));document.getElementById("playBtn").disabled=false;document.getElementById("stopBtn").disabled=true;}
+    function scheduleNextCycle(st,kIdx){if(!AppState.isPlaying)return;updateGlobalData(kIdx);renderAll();const bb=document.getElementById("backbeatMode").checked;for(let i=0;i<8;i++){if(bb&&i%2===0)continue;Tone.Transport.schedule(t=>clickSynth.triggerAttackRelease("C6","32n",t),st+i*Tone.Time("4n").toSeconds());}let cur=st;AppState.currentLickData.forEach((d,i)=>{let dc=(d.duration==="8")?"8n":"4n";let ds=Tone.Time(dc).toSeconds();Tone.Transport.schedule(t=>{synth.triggerAttackRelease(Tone.Frequency(d.midi,"midi"),dc,t);Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.add("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.add("active-staff-note");},t);Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.remove("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.remove("active-staff-note");},t+ds-0.05);},cur);cur+=ds;});let dur=8*Tone.Time("4n").toSeconds();let nk=document.getElementById("cycleMode").checked?(kIdx+1)%12:kIdx;Tone.Transport.schedule(()=>scheduleNextCycle(st+dur,nk),st+dur-0.1);}
+</script>
+</body>
+</html>
