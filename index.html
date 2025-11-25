@@ -2,29 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Jazz Lick Trainer (Final Fixed)</title>
+    <title>Jazz Lick Trainer (Final Fix Transposition)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #eef2f3; text-align: center; color: #333; }
-        .container { 
-            display: inline-block; background: white; padding: 20px; border-radius: 10px; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 95%; width: 950px;
-        }
+        body { font-family: sans-serif; padding: 10px; background: #eef2f3; text-align: center; color: #333; }
+        .container { display: inline-block; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 95%; width: 950px; }
         .status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .key-display { font-size: 1.5rem; font-weight: bold; color: #d32f2f; }
         
-        #drop-zone {
-            border: 2px dashed #aaa; border-radius: 8px; padding: 10px; margin-bottom: 15px;
-            background: #fafafa; color: #666; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
-        }
+        #drop-zone { border: 2px dashed #aaa; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fafafa; color: #666; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; }
         #drop-zone.highlight { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
         
-        #notation-container { 
-            background: #fff; border-radius: 8px; margin-bottom: 10px; overflow: hidden;
-            border: 1px solid #ddd; height: 200px; display: flex; justify-content: center;
-        }
+        #notation-container { background: #fff; border-radius: 8px; margin-bottom: 10px; overflow: hidden; border: 1px solid #ddd; height: 220px; display: flex; justify-content: center; align-items: center; }
         #fretboard-container { background: #3e2723; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 10px; }
         
         .control-panel { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0; display: flex; flex-direction: column; gap: 15px; align-items: center;}
@@ -32,15 +23,12 @@
         
         .select-group { display: flex; flex-direction: column; gap: 5px; text-align: left; }
         .select-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
-        
         .area-preset { background: #fffde7; padding: 8px; border-radius: 5px; border: 1px solid #fff9c4; }
         .area-user { background: #e3f2fd; padding: 8px; border-radius: 5px; border: 1px solid #bbdefb; display: flex; gap: 5px; align-items: flex-end;}
 
         select { padding: 6px; font-size: 0.95rem; border-radius: 4px; border: 1px solid #ccc; min-width: 200px; font-weight: bold; }
-        
         button { padding: 6px 12px; cursor: pointer; color: white; border: none; border-radius: 4px; font-size: 0.9rem; font-weight: bold; transition: opacity 0.2s; }
-        button:hover { opacity: 0.8; }
-        button:disabled { background: #ccc; cursor: not-allowed; opacity: 0.5; }
+        button:hover { opacity: 0.8; } button:disabled { background: #ccc; cursor: not-allowed; opacity: 0.5; }
         
         .btn-play { background: #2e7d32; padding: 8px 30px; font-size: 1rem; } 
         .btn-stop { background: #c62828; padding: 8px 30px; font-size: 1rem; } 
@@ -48,17 +36,12 @@
         .btn-save { background: #f57c00; }
         .btn-del { background: #d32f2f; }
         .btn-reset { background: #607d8b; font-size: 0.8rem; }
-
         input[type=range] { width: 120px; cursor: pointer; }
 
-        .footer {
-            margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;
-            font-size: 0.9rem; color: #777;
-        }
+        .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 0.8rem; color: #777; }
         .footer a { color: #333; text-decoration: none; font-weight: bold; transition: color 0.2s; }
         .footer a:hover { text-decoration: underline; color: #d32f2f; }
 
-        /* SVG Styles */
         .string-line { stroke: #bcaaa4; stroke-width: 2; }
         .fret-line { stroke: #8d6e63; stroke-width: 3; }
         .note-circle { fill: #ff9800; stroke: #fff; stroke-width: 2; cursor: pointer; transition: fill 0.05s; }
@@ -73,19 +56,18 @@
         .active-staff-note { fill: #ff0000 !important; stroke: #ff0000; stroke-width: 1px; r: 7px !important; }
         .ledger-line { stroke: #000; stroke-width: 1; }
         .chord-text { font-family: "Times New Roman", serif; font-size: 20px; font-weight: bold; fill: #d32f2f; }
-        .accidental { font-family: "Times New Roman", serif; font-size: 24px; fill: #000; }
-        .key-sig { font-family: "Times New Roman", serif; font-size: 24px; fill: #000; }
+        .accidental { font-family: "Times New Roman", serif; font-size: 26px; fill: #000; font-weight: normal; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="status-bar">
-        <div>Jazz Lick Trainer (Fixed Audio & Display)</div>
+        <div>Jazz Lick Trainer (Final Fix Transposition)</div>
         <div class="key-display" id="currentKeyDisplay">Key: C</div>
     </div>
     
-    <div id="drop-zone">MIDIファイルをドロップ (自動度数・4小節以内)</div>
+    <div id="drop-zone">MIDIファイルをドロップ (度数自動判別・4小節以内)</div>
     <div id="notation-container"></div>
 
     <div class="control-panel">
@@ -144,25 +126,22 @@
         </div>
     </div>
     <div id="fretboard-container"><div id="fretboard"></div></div>
-    
-    <div class="footer">
-        Special Thanks To <a href="https://toshikinunokawa.com/online-salon/" target="_blank" rel="noopener noreferrer">Toshiki Nunokawa Online Salon</a>
-    </div>
+    <div class="footer">Special Thanks To <a href="https://toshikinunokawa.com/online-salon/" target="_blank" rel="noopener noreferrer">Toshiki Nunokawa Online Salon</a></div>
 </div>
 
 <script>
-    // === 1. 重要な定数定義（一番最初に配置） ===
     const keyCycle = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"];
-    const STORAGE_KEY = "jazzLickUserPresets_v40_Fixed"; 
+    const STORAGE_KEY = "jazzLickUserPresets_v47_FixTranspo"; 
     const stringBaseMidi = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
-    const midiToNoteName = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
     
+    // 音名定義
+    const notesFlat = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    const notesSharp = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
     const keySignatures = { 
         "C": {n:0,t:"f"}, "F": {n:1,t:"f"}, "Bb": {n:2,t:"f"}, "Eb": {n:3,t:"f"}, "Ab": {n:4,t:"f"}, "Db": {n:5,t:"f"}, "Gb": {n:6,t:"f"}, 
         "B": {n:5,t:"s"}, "E": {n:4,t:"s"}, "A": {n:3,t:"s"}, "D": {n:2,t:"s"}, "G": {n:1,t:"s"} 
     };
-    
-    // ★ Key-Relative Degrees (0=Root, 1=b9...)
     const degreeMap = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
 
     const defaultLibrary = [
@@ -177,10 +156,9 @@
         { name: "9. 1-2-3-5 Pattern", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "E", string: 5, fret: 7, duration: "8", chord: "" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "A", string: 4, fret: 7, duration: "8", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "8", chord: "V" },{ noteName: "A", string: 4, fret: 7, duration: "8", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "4", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", chord: "I" }] },
         { name: "10. Sheets of Sound", data: [{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "II" },{ noteName: "A", string: 4, fret: 7, duration: "8", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "8", chord: "" },{ noteName: "E", string: 2, fret: 5, duration: "8", chord: "" },{ noteName: "Eb", string: 2, fret: 4, duration: "8", chord: "V" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "4", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", chord: "I" }] },
         { name: "11. Whole Tone V", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "" },{ noteName: "Bb", string: 3, fret: 3, duration: "8", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "V" },{ noteName: "Db", string: 2, fret: 2, duration: "8", chord: "" },{ noteName: "Eb", string: 2, fret: 4, duration: "4", chord: "" },{ noteName: "E", string: 1, fret: 0, duration: "4", chord: "I" }] },
-        { name: "12. Diminished V", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "" },{ noteName: "D", string: 3, fret: 7, duration: "8", chord: "" },{ noteName: "F", string: 2, fret: 6, duration: "8", chord: "" },{ noteName: "G", string: 1, fret: 3, duration: "4", chord: "" },{ noteName: "C", string: 2, fret: 1, duration: "4", chord: "I" }] },
+        { name: "12. Diminished V", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "V" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "" },{ noteName: "D", string: 3, fret: 7, duration: "8", chord: "" },{ noteName: "F", string: 2, fret: 6, duration: "8", chord: "" },{ noteName: "G", string: 1, fret: 3, duration: "4", chord: "" },{ noteName: "C", string: 2, fret: 1, duration: "4", chord: "I" }] },
     ];
 
-    // === State ===
     let userLibrary = [];
     let importedLick = null;
     let synth = null;
@@ -202,14 +180,17 @@
             setupDropZone();
             updateGlobalData(0); 
             renderAll();
-        } catch(e) { console.error(e); alert("Init Error: " + e.message); }
+        } catch(e) { console.error(e); }
     };
 
-    // ... [UI & Storage Logic (Same as before)] ...
     function loadUserPresets() { const s=localStorage.getItem(STORAGE_KEY); if(s){try{userLibrary=JSON.parse(s)}catch(e){} } }
     function setupUI() {
-        const kSel=document.getElementById("keySelect"); if(kSel.options.length===0) keyCycle.forEach((k,i)=>{let o=document.createElement("option");o.value=i;o.text=k;kSel.appendChild(o)});
-        const pSel=document.getElementById("presetSelect"); pSel.innerHTML=""; defaultLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value=i;o.text=l.name;pSel.appendChild(o)});
+        const kSel = document.getElementById("keySelect");
+        if(kSel.options.length === 0) {
+            keyCycle.forEach((k, i) => { let opt = document.createElement("option"); opt.value = i; opt.text = k; kSel.appendChild(opt); });
+        }
+        const pSel = document.getElementById("presetSelect"); pSel.innerHTML="";
+        defaultLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value=i;o.text=l.name;pSel.appendChild(o)});
         updateUserSelect();
     }
     function updateUserSelect() {
@@ -223,14 +204,20 @@
     function deleteCurrentPreset(){ const v=document.getElementById("userSelect").value; if(!v){alert("選択してください");return;} if(v==="import"){importedLick=null;updateUserSelect();changePreset();return;} if(confirm("削除しますか？")){userLibrary.splice(parseInt(v.split("-")[1]),1);localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary));updateUserSelect();changePreset();}}
     function clearAllUserPresets(){ if(confirm("全消去?")){localStorage.removeItem(STORAGE_KEY); userLibrary=[]; updateUserSelect(); changePreset();} }
     function updateBpmDisplay(v){ document.getElementById("bpmDisplay").innerText=v; if(Tone.Transport.state==='started')Tone.Transport.bpm.rampTo(v,0.1); }
-    function changeKeyManual(){ updateGlobalData(parseInt(document.getElementById("keySelect").value)); renderAll(); }
+    
+    async function changeKeyManual(){ 
+        updateGlobalData(parseInt(document.getElementById("keySelect").value)); 
+        renderAll();
+        if(AppState.isPlaying) {
+            stopSequence();
+            await startSequence();
+        }
+    }
 
-    // === ★ Logic: Dynamic Degree Calc ★ ===
-    function updateGlobalData(keyIdx) {
-        AppState.currentKeyIndex = keyIdx;
+    // ★修正: 計算ロジックを分離（再生予約時に未来のキーのデータを計算するため）
+    function getCalculatedLickData(keyIdx) {
         let keyName = keyCycle[keyIdx];
-        let targetKeyIndex = midiToNoteName.indexOf(keyName); 
-
+        let targetKeyIndex = notesFlat.indexOf(keyName); 
         let startStr = parseInt(document.getElementById("rootStringSelect").value);
         let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
         if (targetStr < 1) targetStr = 1; 
@@ -243,32 +230,35 @@
 
         let targetRootMidi = strBaseMidi + anchorFret;
         let shift = targetRootMidi - 48; 
+        let currentNoteNames = (keySignatures[keyName].t === 's') ? notesSharp : notesFlat;
 
         let targetMidiNotes = AppState.currentLickBase.map(d => {
             let baseMidi = stringBaseMidi[d.string] + d.fret;
             let finalMidi = baseMidi + shift;
-            
-            // ★ CALCULATE DYNAMIC DEGREE ★
-            // Relative to Key Center (Moveable Do)
-            let pitchClass = finalMidi % 12;
-            let interval = (pitchClass - targetKeyIndex + 12) % 12;
+            let notePc = finalMidi % 12;
+            let interval = (notePc - targetKeyIndex + 12) % 12;
             let dynDegree = degreeMap[interval];
-
-            return { 
-                midi: finalMidi, 
-                duration: d.duration, 
-                chord: d.chord,
-                degree: dynDegree // Use Calculated Degree
-            };
+            return { midi: finalMidi, duration: d.duration, chord: d.chord, degree: dynDegree };
         });
 
-        AppState.currentLickData = optimizeFingering(targetMidiNotes, anchorFret);
-        AppState.currentHandPos = anchorFret;
+        return {
+            data: optimizeFingering(targetMidiNotes, anchorFret, currentNoteNames),
+            anchorFret: anchorFret
+        };
+    }
+
+    function updateGlobalData(keyIdx) {
+        let result = getCalculatedLickData(keyIdx);
+        AppState.currentKeyIndex = keyIdx;
+        AppState.currentLickData = result.data;
+        AppState.currentHandPos = result.anchorFret;
+        
+        let keyName = keyCycle[keyIdx];
         document.getElementById("currentKeyDisplay").innerText = "Key: " + keyName;
         document.getElementById("keySelect").value = keyIdx;
     }
 
-    function optimizeFingering(notes, anchorFret) {
+    function optimizeFingering(notes, anchorFret, noteNameArray) {
         let lick = [];
         let boxMin = anchorFret - 2;
         let boxMax = anchorFret + 5;
@@ -290,69 +280,210 @@
                 let nameIdx = n.midi % 12;
                 let oct = Math.floor((n.midi+12)/12) - 1;
                 lick.push({
-                    noteName: midiToNoteName[nameIdx], octave: oct, midi: n.midi,
-                    string: best.string, fret: best.fret, duration: n.duration, chord: n.chord,
-                    degree: n.degree // Passed from updateGlobalData
+                    noteName: noteNameArray[nameIdx], octave: oct, midi: n.midi,
+                    string: best.string, fret: best.fret, duration: n.duration, chord: n.chord, degree: n.degree
                 });
             }
         });
         return lick;
     }
 
-    // === MIDI Import ===
+    function shouldDrawAccidental(noteName, keyName) {
+        const letter = noteName.charAt(0);
+        const actualAcc = noteName.slice(1);
+        const sig = keySignatures[keyName];
+        let expectedAcc = "";
+        
+        if (sig.n > 0) {
+            if (sig.t === "f") {
+                const flatsOrder = ["B", "E", "A", "D", "G", "C", "F"];
+                const affected = flatsOrder.slice(0, sig.n);
+                if (affected.includes(letter)) expectedAcc = "b";
+            } else {
+                const sharpsOrder = ["F", "C", "G", "D", "A", "E", "B"];
+                const affected = sharpsOrder.slice(0, sig.n);
+                if (affected.includes(letter)) expectedAcc = "#";
+            }
+        }
+        return actualAcc !== expectedAcc;
+    }
+
     function setupDropZone(){const d=document.getElementById("drop-zone");d.addEventListener("dragover",e=>{e.preventDefault();d.classList.add("highlight")});d.addEventListener("dragleave",()=>d.classList.remove("highlight"));d.addEventListener("drop",handleDrop);}
     async function handleDrop(e){e.preventDefault();document.getElementById("drop-zone").classList.remove("highlight");let f=e.dataTransfer.files[0];if(f){let b=await f.arrayBuffer();parseMidi(b,f.name);}}
     function parseMidi(b,n){
         const m=new Midi(b); if(m.tracks.length===0)return;
-        // Limit to 4 bars
-        const bpm = m.header.tempos[0]?.bpm || 120;
-        if(m.duration > (60/bpm)*4*4) { alert("4小節以内でお願いします"); return; }
-        
-        let notes=m.tracks[0].notes;
-        // Just convert to object, degrees will be calc'd in updateGlobalData
-        let t=notes.map(x=>({midi:x.midi,duration:x.duration>0.35?"4":"8",chord:""}));
-        
-        let o=optimizeFingering(t,5);
-        if(o.length>0)o[0].chord="Start";
-        importedLick={name:"📂 "+n,data:o};
-        updateUserSelect(); document.getElementById("userSelect").value="import"; changeUser();
+        let t=m.tracks[0].notes.map(x=>({midi:x.midi,duration:x.duration>0.35?"4":"8",chord:"",degree:degreeMap[x.midi%12]}));
+        let o=optimizeFingering(t,5, notesFlat);if(o.length>0)o[0].chord="Start";
+        importedLick={name:"📂 "+n,data:o};updateUserSelect();document.getElementById("userSelect").value="import";changeUser();
     }
 
-    // === Render & Audio (Standard) ===
     function renderAll() { renderManualNotation(); renderFretboard(); }
+
     function renderManualNotation() {
-        const c=document.getElementById("notation-container"); c.innerHTML="";
-        const w=900, h=200; const ns="http://www.w3.org/2000/svg";
-        const svg=document.createElementNS(ns,"svg"); svg.setAttribute("width",w); svg.setAttribute("height",h);
-        const topY=80, startX=70, gap=55;
-        for(let i=0;i<5;i++){let y=topY+i*10;let l=document.createElementNS(ns,"line");l.setAttribute("x1",20);l.setAttribute("x2",w-20);l.setAttribute("y1",y);l.setAttribute("y2",y);l.setAttribute("class","stave-line");svg.appendChild(l);}
-        let cl=document.createElementNS(ns,"text");cl.setAttribute("x",30);cl.setAttribute("y",topY+30);cl.setAttribute("font-size","45");cl.textContent="𝄞";svg.appendChild(cl);
+        const container = document.getElementById("notation-container"); container.innerHTML = "";
+        const width = 900; height = 220; 
+        const ns = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(ns, "svg");
+        svg.setAttribute("width", width); svg.setAttribute("height", height);
+        
+        const topY=90, startX=160, gap=55;
+
+        for(let i=0;i<5;i++){
+            let y=topY+i*10; let l=document.createElementNS(ns,"line");
+            l.setAttribute("x1",20); l.setAttribute("x2",width-20); l.setAttribute("y1",y); l.setAttribute("y2",y); l.setAttribute("class","stave-line"); svg.appendChild(l);
+        }
+        let cl=document.createElementNS(ns,"text"); cl.setAttribute("x",30); cl.setAttribute("y",topY+30); cl.setAttribute("font-size","45"); cl.textContent="𝄞"; svg.appendChild(cl);
         drawKeySignature(svg,ns,topY);
-        drawDivider(svg,ns,startX+3.5*gap,topY,"solid"); drawDivider(svg,ns,startX+7*gap,topY,"bar"); drawDivider(svg,ns,startX+7*gap+40+0.8*gap,topY,"solid");
+
+        let div1X = startX + (3.5 * gap); drawDivider(svg,ns,div1X,topY,"solid");
+        let barX = startX + (7 * gap); drawDivider(svg,ns,barX,topY,"bar");
+        let div2X = startX + (7 * gap) + 40 + (0.8*gap); drawDivider(svg,ns,div2X,topY,"solid");
+
         const steps={"C":0,"D":1,"E":2,"F":3,"G":4,"A":5,"B":6};
-        AppState.currentLickData.forEach((d,i)=>{
+        let currentKeyName = keyCycle[AppState.currentKeyIndex];
+
+        AppState.currentLickData.forEach((d, i) => {
             let x=startX+i*gap; if(i>=7)x+=40;
             let nv=steps[d.noteName.substring(0,1)]; let as=d.octave*7+nv; let f5=5*7+3; let cy=topY+(f5-as)*5;
             if(d.chord){let t=document.createElementNS(ns,"text");let l=d.chord;if(l.length<=2&&l!=="Start")l=getTransposedChordName(l);t.setAttribute("x",x);t.setAttribute("y",topY-25);t.setAttribute("class","chord-text");t.setAttribute("text-anchor","middle");t.textContent=l;svg.appendChild(t);}
             if(f5-as>=10||f5-as<=-2){let ly=cy;if((f5-as)%2!==0)ly=(f5-as>0)?cy-5:cy+5;let ll=document.createElementNS(ns,"line");ll.setAttribute("x1",x-12);ll.setAttribute("x2",x+12);ll.setAttribute("y1",ly);ll.setAttribute("y2",ly);ll.setAttribute("class","ledger-line");svg.appendChild(ll);}
             let hd=document.createElementNS(ns,"ellipse");hd.setAttribute("id","staff-note-"+i);hd.setAttribute("cx",x);hd.setAttribute("cy",cy);hd.setAttribute("rx",6);hd.setAttribute("ry",4.5);hd.setAttribute("transform",`rotate(-20 ${x} ${cy})`);hd.setAttribute("class","note-head");svg.appendChild(hd);
-            if(isAccidentalNeeded(d.noteName)){let ac=document.createElementNS(ns,"text");ac.setAttribute("x",x-16);ac.setAttribute("y",cy+6);ac.setAttribute("class","accidental");ac.textContent=d.noteName.includes("b")?"♭":(d.noteName.includes("#")?"♯":"♮");svg.appendChild(ac);}
-            let se=cy-30;let sx=x+5;if(cy<80){se=cy+30;sx=x-5;}let st=document.createElementNS(ns,"line");st.setAttribute("x1",sx);st.setAttribute("x2",sx);st.setAttribute("y1",cy);st.setAttribute("y2",se);st.setAttribute("class","stem");svg.appendChild(st);
+            
+            if(shouldDrawAccidental(d.noteName, currentKeyName)){
+                let ac=document.createElementNS(ns,"text"); 
+                ac.setAttribute("x",x-26); ac.setAttribute("y",cy+8); ac.setAttribute("class","accidental");
+                let s = "";
+                if(d.noteName.includes("b")) s = "♭";
+                else if(d.noteName.includes("#")) s = "♯";
+                else s = "♮";
+                ac.textContent=s; svg.appendChild(ac);
+            }
+            
+            let se=cy-30; let sx=x+5; if(cy<80){se=cy+30; sx=x-5;}
+            let st=document.createElementNS(ns,"line"); st.setAttribute("x1",sx); st.setAttribute("x2",sx); st.setAttribute("y1",cy); st.setAttribute("y2",se); st.setAttribute("class","stem"); svg.appendChild(st);
             if(d.duration==="8"){let fl=document.createElementNS(ns,"path");let p=(cy<80)?`M ${sx} ${se} Q ${sx+8} ${se-10} ${sx+8} ${se-20}`:`M ${sx} ${se} Q ${sx+8} ${se+10} ${sx+8} ${se+20}`;fl.setAttribute("d",p);fl.setAttribute("stroke","black");fl.setAttribute("stroke-width",2);fl.setAttribute("fill","none");svg.appendChild(fl);}
         });
-        c.appendChild(svg);
+        container.appendChild(svg);
     }
+
     function drawDivider(s,n,x,y,t){let l=document.createElementNS(n,"line");l.setAttribute("x1",x);l.setAttribute("x2",x);l.setAttribute("y1",y);l.setAttribute("y2",y+40);l.setAttribute("class",t==="bar"?"bar-line":"solid-divider");s.appendChild(l);}
-    function drawKeySignature(s,n,y){let k=keyCycle[AppState.currentKeyIndex];let sg=keySignatures[k];if(!sg||sg.n===0)return;let fs=[4,1,5,2,6,3],ss=[0,3,-1,2,5];let st=sg.t==="f"?fs:ss;let sm=sg.t==="f"?"♭":"♯";for(let i=0;i<sg.n;i++){let ty=y+st[i]*5;let t=document.createElementNS(n,"text");t.setAttribute("x",35+i*10);t.setAttribute("y",ty+6);t.setAttribute("class","accidental");t.textContent=sm;s.appendChild(t);}}
-    function isAccidentalNeeded(n){return n.length>1;}
-    function getTransposedChordName(t){if(!["II","V","I","VI"].includes(t))return t;let r=midiToNoteName.indexOf(keyCycle[AppState.currentKeyIndex]);let sh={"II":2,"V":7,"I":0,"VI":9}[t];return midiToNoteName[(r+sh)%12]+{"II":"m7","V":"7","I":"maj7","VI":"7"}[t];}
+    
+    function drawKeySignature(s,n,y){
+        let k=keyCycle[AppState.currentKeyIndex];
+        let sg=keySignatures[k];
+        if(!sg||sg.n===0)return;
+        let fs=[4,1,5,2,6,3],ss=[0,3,-1,2,5];
+        let st=sg.t==="f"?fs:ss;
+        let sm=sg.t==="f"?"♭":"♯";
+        for(let i=0;i<sg.n;i++){
+            let ty=y+st[i]*5;
+            let t=document.createElementNS(n,"text");
+            t.setAttribute("x", 75 + i * 14);
+            t.setAttribute("y",ty+8); 
+            t.setAttribute("class","accidental");
+            t.textContent=sm;s.appendChild(t);
+        }
+    }
+
+    function getTransposedChordName(t){if(!["II","V","I","VI"].includes(t))return t;let r=notesFlat.indexOf(keyCycle[AppState.currentKeyIndex]);let sh={"II":2,"V":7,"I":0,"VI":9}[t];return notesFlat[(r+sh)%12]+{"II":"m7","V":"7","I":"maj7","VI":"7"}[t];}
     function renderFretboard(){const c=document.getElementById("fretboard-container");c.innerHTML="";const w=950,h=180;const ns="http://www.w3.org/2000/svg";const svg=document.createElementNS(ns,"svg");svg.setAttribute("width",w);svg.setAttribute("height",h);const mx=30,my=20,sg=25,fg=38;for(let i=0;i<=24;i++){let x=mx+i*fg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",x);l.setAttribute("x2",x);l.setAttribute("y1",my);l.setAttribute("y2",my+5*sg);l.setAttribute("class",i===0?"string-line":"fret-line");if(i===0)l.setAttribute("stroke-width",5);svg.appendChild(l);if([3,5,7,9,12,15,17,19,21,24].includes(i)){let t=document.createElementNS(ns,"text");t.setAttribute("x",x-fg/2);t.setAttribute("y",h-5);t.textContent=i;t.setAttribute("fill","#aaa");t.setAttribute("text-anchor","middle");svg.appendChild(t);}}for(let s=0;s<6;s++){let y=my+s*sg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",mx);l.setAttribute("x2",mx+24*fg);l.setAttribute("y1",y);l.setAttribute("y2",y);l.setAttribute("class","string-line");svg.appendChild(l);}AppState.currentLickData.forEach((d,i)=>{let cx=mx+d.fret*fg-fg/2;let cy=my+(d.string-1)*sg;let g=document.createElementNS(ns,"g");g.setAttribute("id","note-group-"+i);let c=document.createElementNS(ns,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",12);c.setAttribute("class","note-circle");c.onclick=()=>{if(!synth)initAudio();Tone.start();playNoteByMidi(d.midi,d.duration)};g.appendChild(c);let t=document.createElementNS(ns,"text");t.setAttribute("x",cx);t.setAttribute("y",cy+1);t.setAttribute("class","note-text");t.textContent=(AppState.displayMode==="noteName")?d.noteName:(d.degree||"?");g.appendChild(t);svg.appendChild(g);});c.appendChild(svg);}
     function toggleDisplayMode(){AppState.displayMode=(AppState.displayMode==="noteName")?"degree":"noteName";renderFretboard();}
-    async function initAudio(){if(synth)return;synth=new Tone.Synth({oscillator:{type:"triangle"}}).toDestination();synth.volume.value=-6;clickSynth=new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.001,decay:0.05,sustain:0,release:0.05}}).toDestination();clickSynth.volume.value=-10;await Tone.start();}
+
+    async function initAudio() {
+        if(synth) return;
+        synth=new Tone.Synth({oscillator:{type:"triangle"}}).toDestination(); synth.volume.value=-6;
+        clickSynth=new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.001,decay:0.05,sustain:0,release:0.05}}).toDestination(); clickSynth.volume.value=-10;
+        await Tone.start();
+    }
     function playNoteByMidi(m,d){let f=Tone.Frequency(m,"midi");let dc=(d==="8")?"8n":"4n";synth.triggerAttackRelease(f,dc);}
-    async function startSequence(){if(AppState.isPlaying)return;try{await initAudio();await Tone.start();AppState.isPlaying=true;document.getElementById("playBtn").disabled=true;document.getElementById("stopBtn").disabled=false;Tone.Transport.bpm.value=document.getElementById("bpmInput").value;Tone.Transport.stop();Tone.Transport.cancel();scheduleNextCycle(0,AppState.currentKeyIndex);Tone.Transport.start();}catch(e){alert(e);stopSequence();}}
-    function stopSequence(){AppState.isPlaying=false;try{Tone.Transport.stop();Tone.Transport.cancel();if(synth)synth.releaseAll();}catch(e){}document.querySelectorAll('.active-note,.active-staff-note').forEach(e=>e.classList.remove('active-note','active-staff-note'));document.getElementById("playBtn").disabled=false;document.getElementById("stopBtn").disabled=true;}
-    function scheduleNextCycle(st,kIdx){if(!AppState.isPlaying)return;updateGlobalData(kIdx);renderAll();const bb=document.getElementById("backbeatMode").checked;for(let i=0;i<8;i++){if(bb&&i%2===0)continue;Tone.Transport.schedule(t=>clickSynth.triggerAttackRelease("C6","32n",t),st+i*Tone.Time("4n").toSeconds());}let cur=st;AppState.currentLickData.forEach((d,i)=>{let dc=(d.duration==="8")?"8n":"4n";let ds=Tone.Time(dc).toSeconds();Tone.Transport.schedule(t=>{synth.triggerAttackRelease(Tone.Frequency(d.midi,"midi"),dc,t);Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.add("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.add("active-staff-note");},t);Tone.Draw.schedule(()=>{let g=document.getElementById("note-group-"+i);if(g)g.querySelector("circle").classList.remove("active-note");let s=document.getElementById("staff-note-"+i);if(s)s.classList.remove("active-staff-note");},t+ds-0.05);},cur);cur+=ds;});let dur=8*Tone.Time("4n").toSeconds();let nk=document.getElementById("cycleMode").checked?(kIdx+1)%12:kIdx;Tone.Transport.schedule(()=>{scheduleNextCycle(st+dur,nk);},st+dur-0.1);}
+
+    async function startSequence() {
+        if(AppState.isPlaying) return;
+        try {
+            await Tone.start();
+            await initAudio();
+            Tone.Transport.stop();
+            Tone.Transport.cancel();
+            Tone.Transport.position = 0;
+            Tone.Transport.bpm.value = document.getElementById("bpmInput").value;
+
+            AppState.isPlaying = true;
+            document.getElementById("playBtn").disabled=true; document.getElementById("stopBtn").disabled=false;
+            document.getElementById("keySelect").disabled=true; document.getElementById("presetSelect").disabled=true; 
+            document.getElementById("userSelect").disabled=true; document.getElementById("octaveUp").disabled=true; document.getElementById("rootStringSelect").disabled=true;
+            
+            const quarter = Tone.Time("4n").toSeconds();
+            const countInDuration = 4 * quarter; 
+
+            for(let i=0; i<4; i++){
+                Tone.Transport.schedule((t) => {
+                    let pitch = (i===0) ? "C6" : "G5"; 
+                    clickSynth.triggerAttackRelease(pitch, "32n", t);
+                }, i * quarter);
+            }
+
+            scheduleNextCycle(countInDuration, AppState.currentKeyIndex);
+            Tone.Transport.start();
+            
+        } catch(e) {
+            console.error(e);
+            alert("再生エラー: ページを更新してください");
+            stopSequence();
+        }
+    }
+
+    function stopSequence() {
+        AppState.isPlaying = false;
+        try { Tone.Transport.stop(); Tone.Transport.cancel(); if(synth) synth.releaseAll(); } catch(e){}
+        document.querySelectorAll('.active-note,.active-staff-note').forEach(e=>e.classList.remove('active-note','active-staff-note'));
+        document.getElementById("playBtn").disabled=false; document.getElementById("stopBtn").disabled=true;
+        document.getElementById("keySelect").disabled=false; document.getElementById("presetSelect").disabled=false; 
+        document.getElementById("userSelect").disabled=false; document.getElementById("octaveUp").disabled=false; document.getElementById("rootStringSelect").disabled=false;
+    }
+
+    function scheduleNextCycle(st, kIdx) {
+        if(!AppState.isPlaying) return;
+        
+        Tone.Transport.schedule((time) => {
+            Tone.Draw.schedule(() => {
+                updateGlobalData(kIdx);
+                renderAll();
+            }, time);
+        }, st);
+
+        const bb = document.getElementById("backbeatMode").checked;
+        for(let i=0; i<8; i++){
+            if(bb && i%2===0) continue;
+            Tone.Transport.schedule(t=>clickSynth.triggerAttackRelease("C6","32n",t), st+i*Tone.Time("4n").toSeconds());
+        }
+
+        // ★修正: ここで未来のデータを計算して使用（グローバルのAppStateは使わない）
+        let nextCycleData = getCalculatedLickData(kIdx).data;
+        
+        let cur = st;
+        nextCycleData.forEach((d, i) => {
+            let dc=(d.duration==="8")?"8n":"4n"; let ds=Tone.Time(dc).toSeconds();
+            Tone.Transport.schedule(t=>{
+                synth.triggerAttackRelease(Tone.Frequency(d.midi,"midi"), dc, t);
+                Tone.Draw.schedule(()=>{
+                    let g=document.getElementById("note-group-"+i); if(g)g.querySelector("circle").classList.add("active-note");
+                    let s=document.getElementById("staff-note-"+i); if(s)s.classList.add("active-staff-note");
+                }, t);
+                Tone.Draw.schedule(()=>{
+                    let g=document.getElementById("note-group-"+i); if(g)g.querySelector("circle").classList.remove("active-note");
+                    let s=document.getElementById("staff-note-"+i); if(s)s.classList.remove("active-staff-note");
+                }, t+ds-0.05);
+            }, cur);
+            cur += ds;
+        });
+
+        let dur = 8 * Tone.Time("4n").toSeconds();
+        let nk = document.getElementById("cycleMode").checked ? (kIdx+1)%12 : kIdx;
+        
+        Tone.Transport.schedule(() => {
+            scheduleNextCycle(st+dur, nk);
+        }, st + dur - 0.1);
+    }
 </script>
 </body>
 </html>
