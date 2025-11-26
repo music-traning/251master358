@@ -1096,6 +1096,19 @@
                 }
             }
 
+            // Check for length (Max 4 measures)
+            // Assuming 4/4 signature, 4 measures = 16 beats
+            const maxBeats = 16;
+            const maxTicks = maxBeats * ppq;
+            const lastNote = notes[notes.length - 1];
+            if (lastNote) {
+                const lastNoteEnd = lastNote.ticks + lastNote.durationTicks;
+                if (lastNoteEnd > maxTicks) {
+                    alert("エラー: 5小節以上のファイルはインポートできません（4小節以内）。");
+                    return;
+                }
+            }
+
             let processedNotes = [];
             let currentTick = 0;
 
