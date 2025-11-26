@@ -389,6 +389,19 @@
                 <button id="playBtn" class="btn-play" onclick="startSequence()">▶ Start</button>
                 <button id="stopBtn" class="btn-stop" onclick="stopSequence()" disabled>■ Stop</button>
                 <button class="btn-mode" onclick="toggleDisplayMode()">Display Mode</button>
+                <div class="select-group">
+                    <label>CAGED System</label>
+                    <select id="cagedSelect" onchange="changeCaged()" style="width:100px;">
+                        <option value="none" selected>-- None --</option>
+                        <option value="C">C Shape</option>
+                        <option value="A">A Shape</option>
+                        <option value="G">G Shape</option>
+                        <option value="E">E Shape</option>
+                        <option value="D">D Shape</option>
+                    </select>
+                    <label style="margin-left:5px; cursor:pointer;"><input type="checkbox" id="cagedCycle"
+                            onchange="changeCaged()"> Alt</label>
+                </div>
             </div>
         </div>
         <div id="fretboard-container">
@@ -680,6 +693,19 @@
         function updateBpmDisplay(v) { document.getElementById("bpmInput").value = v; document.getElementById("bpmDisplay").innerText = v; if (Tone.Transport.state === 'started') Tone.Transport.bpm.rampTo(v, 0.1); }
 
         async function changeKeyManual() {
+            // If CAGED is active, it might override Start String, but here we just update global data
+            // If user changes Key, we should re-calculate based on current CAGED setting or Start String
+            updateGlobalData(parseInt(document.getElementById("keySelect").value));
+            renderAll();
+            if (AppState.isPlaying) {
+                stopSequence();
+                await startSequence();
+            }
+        }
+
+        async function changeCaged() {
+            // When CAGED is changed, we update the visualization
+            // If "None" is selected, it falls back to Start String logic (which might need a refresh if it was overridden)
             updateGlobalData(parseInt(document.getElementById("keySelect").value));
             renderAll();
             if (AppState.isPlaying) {
@@ -693,16 +719,134 @@
             let keyName = keyCycle[keyIdx];
             let targetKeyIndex = notesFlat.indexOf(keyName);
             let startStr = parseInt(document.getElementById("rootStringSelect").value);
-            let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
-            if (targetStr < 1) targetStr = 1;
+            let cagedShape = document.getElementById("cagedSelect").value;
+            let isCycle = document.getElementById("cagedCycle").checked;
+            let isModulation = (keyIdx % 2 !== 0);
 
-            let strBaseMidi = stringBaseMidi[targetStr];
-            let anchorFret = (targetKeyIndex - (strBaseMidi % 12) + 12) % 12;
-            if (anchorFret < 3) anchorFret += 12;
-            if (document.getElementById("octaveUp").checked) anchorFret += 12;
-            if (anchorFret > 20) anchorFret -= 12;
+            // Apply alternation mapping if Cycle is checked and it's a modulation key (odd index)
+            if (cagedShape !== "none" && isCycle && isModulation) {
+                if (cagedShape === "E") cagedShape = "C"; // 6 -> 5 (Lower box)
+                else if (cagedShape === "G") cagedShape = "A"; // 6 -> 5 (Upper box)
+                else if (cagedShape === "C") cagedShape = "D"; // 5 -> 4 (Lower box)
+                else if (cagedShape === "A") cagedShape = "D"; // 5 -> 4 (Upper box - D shape covers this well enough)
+                else if (cagedShape === "D") {
+                    cagedShape = "none"; // 4 -> 3
+                    startStr = 4; // Force startStr to 4 so that standard logic (startStr - 1) targets string 3
+                }
+            }
 
-            let targetRootMidi = strBaseMidi + anchorFret;
+            let anchorFret;
+
+            if (cagedShape !== "none") {
+                // CAGED Logic
+                // C Shape: Root on 5th string, Offset -3 (e.g. C on 5th str is fret 3. C shape is 0-3. Anchor roughly 0)
+                // A Shape: Root on 5th string, Offset 0 (e.g. C on 5th str is fret 3. A shape is 3-5. Anchor 3)
+                // G Shape: Root on 6th string, Offset -3 (e.g. C on 6th str is fret 8. G shape is 5-8. Anchor 5)
+                // E Shape: Root on 6th string, Offset 0 (e.g. C on 6th str is fret 8. E shape is 8-12. Anchor 8)
+                // D Shape: Root on 4th string, Offset -2 (e.g. C on 4th str is fret 10. D shape is 8-10. Anchor 8) -- wait D shape root is 4th string.
+
+                let rootStr, offset;
+                switch (cagedShape) {
+                    case "C": rootStr = 5; offset = -3; break;
+                    case "A": rootStr = 5; offset = 0; break;
+                    case "G": rootStr = 6; offset = -3; break;
+                    case "E": rootStr = 6; offset = 0; break;
+                    case "D": rootStr = 4; offset = -2; break; // D shape root is on 4th string (e.g. D at open). 
+                }
+
+                let strBaseMidi = stringBaseMidi[rootStr];
+                // Find fret for the key on this string
+                // targetKeyIndex is 0-11 (C=0). strBaseMidi % 12 is string open note PC.
+                // fret = (targetKeyIndex - stringOpenPC + 12) % 12
+                let rootFret = (targetKeyIndex - (strBaseMidi % 12) + 12) % 12;
+
+                // We want the rootFret to be reasonable (not too high if possible, but CAGED shapes usually cover the neck)
+                // Let's assume we want the lowest available position first, but maybe we need to be careful about "open" strings vs high up.
+                // Actually, let's just find the first instance on the string.
+                // But wait, if we are in Key of C.
+                // E shape (Root 6): C on 6th is fret 8. Anchor = 8.
+                // G shape (Root 6): C on 6th is fret 8. Anchor = 5.
+                // A shape (Root 5): C on 5th is fret 3. Anchor = 3.
+                // C shape (Root 5): C on 5th is fret 3. Anchor = 0.
+                // D shape (Root 4): C on 4th is fret 10. Anchor = 8.
+
+                // Adjust rootFret if it's too low and we have an offset that pushes it negative?
+                // No, rootFret is 0-11.
+                // If we want to support higher octaves, we might need more logic.
+                // For now, let's stick to the first octave on the string, but if it's too low for the shape (e.g. negative fret), add 12.
+
+                anchorFret = rootFret + offset;
+                if (anchorFret < 0) anchorFret += 12;
+
+                // Special handling: if anchorFret is still very low (like 0), it's open position.
+                // If it's > 12, it might be fine.
+
+                // Let's allow +1 Octave checkbox to shift this too?
+                if (document.getElementById("octaveUp").checked) anchorFret += 12;
+
+                // Cap at 20?
+                if (anchorFret > 15) anchorFret -= 12; // Keep it playable
+
+            } else {
+                // Existing Logic
+                let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
+                if (targetStr < 1) targetStr = 1;
+
+                let strBaseMidi = stringBaseMidi[targetStr];
+                anchorFret = (targetKeyIndex - (strBaseMidi % 12) + 12) % 12;
+                if (anchorFret < 3) anchorFret += 12;
+                if (document.getElementById("octaveUp").checked) anchorFret += 12;
+                if (anchorFret > 20) anchorFret -= 12;
+            }
+
+            // Determine target root midi for transposition calculation
+            // We need a reference note to calculate the shift.
+            // In the old logic: targetRootMidi = strBaseMidi + anchorFret;
+            // But here anchorFret might be "virtual" anchor for the shape box.
+            // Let's stick to the idea that we shift the lick to match the Key.
+            // The lick is defined in C (usually).
+            // We want the lick's root (C) to match the Key's root at the desired position.
+
+            // Let's find the "Root Note" of the shape/position we just calculated.
+            // If CAGED, we used a specific string to find the root.
+            // If Normal, we used targetStr.
+
+            let referenceString = 5; // Default reference for shift calculation if unsure?
+            let referenceFret = 0;
+
+            if (cagedShape !== "none") {
+                let rootStr;
+                switch (cagedShape) {
+                    case "C": rootStr = 5; break;
+                    case "A": rootStr = 5; break;
+                    case "G": rootStr = 6; break;
+                    case "E": rootStr = 6; break;
+                    case "D": rootStr = 4; break;
+                }
+                // The root is at anchorFret - offset
+                // Wait, anchorFret = rootFret + offset
+                // So rootFret = anchorFret - offset
+                let offset;
+                switch (cagedShape) {
+                    case "C": offset = -3; break;
+                    case "A": offset = 0; break;
+                    case "G": offset = -3; break;
+                    case "E": offset = 0; break;
+                    case "D": offset = -2; break;
+                }
+                referenceString = rootStr;
+                referenceFret = anchorFret - offset;
+            } else {
+                let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
+                if (targetStr < 1) targetStr = 1;
+                referenceString = targetStr;
+                referenceFret = anchorFret; // In old logic, anchorFret IS the root fret (mostly)
+                // Wait, old logic: anchorFret = (targetKeyIndex - ...). 
+                // targetRootMidi = strBaseMidi + anchorFret.
+                // Yes, anchorFret was the fret of the root note.
+            }
+
+            let targetRootMidi = stringBaseMidi[referenceString] + referenceFret;
             let shift = targetRootMidi - 48;
             let currentNoteNames = (keySignatures[keyName].t === 's') ? notesSharp : notesFlat;
 
@@ -1212,6 +1356,7 @@
                 document.getElementById("playBtn").disabled = true; document.getElementById("stopBtn").disabled = false;
                 document.getElementById("keySelect").disabled = true; document.getElementById("presetSelect").disabled = true;
                 document.getElementById("userSelect").disabled = true; document.getElementById("octaveUp").disabled = true; document.getElementById("rootStringSelect").disabled = true;
+                document.getElementById("cagedSelect").disabled = true; document.getElementById("cagedCycle").disabled = true;
 
                 const quarter = Tone.Time("4n").toSeconds();
                 const countInDuration = 4 * quarter;
@@ -1240,6 +1385,7 @@
             document.getElementById("playBtn").disabled = false; document.getElementById("stopBtn").disabled = true;
             document.getElementById("keySelect").disabled = false; document.getElementById("presetSelect").disabled = false;
             document.getElementById("userSelect").disabled = false; document.getElementById("octaveUp").disabled = false; document.getElementById("rootStringSelect").disabled = false;
+            document.getElementById("cagedSelect").disabled = false; document.getElementById("cagedCycle").disabled = false;
         }
 
         function scheduleNextCycle(st, kIdx) {
