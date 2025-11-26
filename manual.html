@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
+    
+    body {
+        background-color: #1a1a1d; /* アプリと同じ背景色 */
+        color: #f1f5f9;
+        font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        padding: 40px;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    .manual-container {
+        width: 1000px;
+        background: #2c2c30;
+        border: 2px solid #cda434; /* ゴールド枠 */
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+
+    h1 {
+        grid-column: 1 / -1;
+        text-align: center;
+        color: #cda434;
+        font-size: 32px;
+        border-bottom: 1px solid #555;
+        padding-bottom: 20px;
+        margin-top: 0;
+    }
+
+    .section {
+        background: rgba(255,255,255,0.05);
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    h2 {
+        color: #cda434;
+        font-size: 18px;
+        margin-top: 0;
+        border-left: 4px solid #cda434;
+        padding-left: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    li {
+        margin-bottom: 12px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .badge {
+        display: inline-block;
+        background: #cda434;
+        color: #000;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-right: 8px;
+        min-width: 18px;
+        text-align: center;
+    }
+
+    .note {
+        font-size: 12px;
+        color: #aaa;
+        margin-top: 4px;
+        display: block;
+    }
+
+    .highlight {
+        color: #fff;
+        font-weight: bold;
+        background: rgba(205, 164, 52, 0.2);
+        padding: 0 4px;
+    }
+</style>
+</head>
+<body>
+
+<div class="manual-container">
+    <h1>Jazz Lick Trainer クイックガイド</h1>
+
+    <div class="column">
+        <div class="section">
+            <h2>基本操作 & ファイル</h2>
+            <ul>
+                <li><span class="badge">1</span> <b>MIDIドロップ</b><br>
+                    単音・4小節以内のMIDIファイルをここにドロップします。<br>
+                    <span class="note">※和音や長すぎるファイルはエラーになります。</span></li>
+                <li><span class="badge">2</span> <b>プリセット / Import</b><br>
+                    内蔵の名フレーズ集、またはインポートしたMIDIを選択します。</li>
+                <li><span class="badge">3</span> <b>保存 (Browser)</b><br>
+                    インポートしたフレーズをブラウザに保存します。<br>
+                    <span class="note">※ブラウザを閉じても次回また練習できます。</span></li>
+            </ul>
+        </div>
+
+        <div class="section" style="margin-top:20px;">
+            <h2>トレーニング設定</h2>
+            <ul>
+                <li><span class="badge">A</span> <b>Difficulty (難易度)</b><br>
+                    移調するキーの数を制限できます。<br>
+                    ・Beginner (3): 基本の3キーのみ<br>
+                    ・Intermediate (6): 半分の6キー (フラット系中心)<br>
+                    ・Advanced (12): 全12キー完走 (スパルタ仕様)</li>
+                <li><span class="badge">B</span> <b>Start String (開始弦)</b><br>
+                    「6弦ルート」「5弦ルート」など、弾き始める弦を指定して練習できます。<br>
+                    <span class="note">※無理な設定だと運指が乱れることがあります(ごめんなさい)</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="column">
+        <div class="section">
+            <h2>リズム & サイクル</h2>
+            <ul>
+                <li><span class="badge">C</span> <b>Cycle (4度進行)</b><br>
+                    チェックを入れると、キーが4度進行(C→F→Bb...)で延々と切り替わります。<br>
+                    <span class="note">※地獄の千本ノックモードです。</span></li>
+                <li><span class="badge">D</span> <b>2&4 (Backbeat)</b><br>
+                    メトロノームが「2拍目・4拍目」だけで鳴ります。<br>
+                    ジャズのリズム感を養うための機能です。</li>
+                <li><span class="badge">E</span> <b>+1 Oct</b><br>
+                    全体の運指を1オクターブ上げます。</li>
+            </ul>
+        </div>
+
+        <div class="section" style="margin-top:20px; border: 2px solid #fff;">
+            <h2>CAGED & Position</h2>
+            <ul>
+                <li><span class="badge">F</span> <b>CAGED System</b><br>
+                    指定したCAGEDフォーム（指板の形）を中心に運指を生成します。</li>
+                <li style="margin-top:15px; background: rgba(255,255,255,0.1); padding:10px; border-radius:6px;">
+                    <span class="badge" style="background:#fff; color:#000;">★</span> <b>ALT (Stay Position)</b><br>
+                    <span class="highlight">移調時に運指がなるべく近い場所(フォーム)に出てくるようになります。</span><br>
+                    <span class="note">これをONにすると、4度進行しても手を大きく移動せずに弾き続けられます。</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

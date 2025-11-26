@@ -336,18 +336,25 @@
 
         .modal-content {
             position: relative;
-            max-width: 90%;
-            max-height: 90%;
+            width: 90%;
+            height: 90%;
+            max-width: 1200px;
             background: #fff;
-            padding: 10px;
+            padding: 0;
+            /* Remove padding for iframe */
             border-radius: 8px;
-            overflow: auto;
+            overflow: hidden;
+            /* Hide overflow */
+            display: flex;
+            flex-direction: column;
         }
 
-        .modal-content img {
-            max-width: 100%;
-            height: auto;
+        .modal-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
             display: block;
+            flex-grow: 1;
         }
 
         .close-btn {
@@ -366,6 +373,8 @@
             align-items: center;
             justify-content: center;
             border: 2px solid #333;
+            z-index: 10;
+            /* Ensure above iframe */
         }
 
         .btn-help {
@@ -378,6 +387,10 @@
             font-weight: bold;
             margin-left: 20px;
             transition: all 0.2s;
+            text-decoration: none;
+            /* For anchor tag */
+            display: inline-block;
+            /* For anchor tag */
         }
 
         .btn-help:hover {
@@ -494,7 +507,7 @@
     <div id="helpModal" class="modal-overlay" onclick="closeHelp(event)">
         <div class="modal-content">
             <span class="close-btn" onclick="closeHelp(event)">×</span>
-            <img src="help_guide.png" alt="Usage Guide">
+            <iframe src="manual.html"></iframe>
         </div>
     </div>
 
@@ -1588,12 +1601,6 @@
             }, st + dur - 0.1);
         }
 
-        function changeDifficulty() {
-            // If the current key is outside the new range, reset to C?
-            // Or just let it be until play starts?
-            // Let's just update UI if needed, but logic handles it at runtime.
-        }
-
         function openHelp() {
             document.getElementById("helpModal").style.display = "flex";
         }
@@ -1602,6 +1609,11 @@
             if (e.target.id === "helpModal" || e.target.classList.contains("close-btn")) {
                 document.getElementById("helpModal").style.display = "none";
             }
+        }
+        function changeDifficulty() {
+            // If the current key is outside the new range, reset to C?
+            // Or just let it be until play starts?
+            // Let's just update UI if needed, but logic handles it at runtime.
         }
     </script>
 </body>
