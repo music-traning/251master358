@@ -1,489 +1,1290 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
-    <title>Jazz Lick Trainer (Final Layout Clean)</title>
+    <title>Jazz Lick Trainer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://unpkg.com/@tonejs/midi"></script>
-    
     <style>
-        body { font-family: sans-serif; padding: 10px; background: #eef2f3; text-align: center; color: #333; }
-        .container { display: inline-block; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 95%; width: 950px; }
-        .status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .key-display { font-size: 1.5rem; font-weight: bold; color: #d32f2f; }
-        
-        #drop-zone { border: 2px dashed #aaa; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fafafa; color: #666; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; }
-        #drop-zone.highlight { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
-        
-        #notation-container { background: #fff; border-radius: 8px; margin-bottom: 10px; overflow: hidden; border: 1px solid #ddd; height: 220px; display: flex; justify-content: center; align-items: center; }
-        #fretboard-container { background: #3e2723; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 10px; }
-        
-        .control-panel { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0; display: flex; flex-direction: column; gap: 15px; align-items: center;}
-        .control-row { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; justify-content: center; width: 100%; }
-        
-        .select-group { display: flex; flex-direction: column; gap: 5px; text-align: left; }
-        .select-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
-        .area-preset { background: #fffde7; padding: 8px; border-radius: 5px; border: 1px solid #fff9c4; }
-        .area-user { background: #e3f2fd; padding: 8px; border-radius: 5px; border: 1px solid #bbdefb; display: flex; gap: 5px; align-items: flex-end;}
+        :root {
+            --bg-color: #1a1a1d;
+            --text-color: #f1f5f9;
+            --accent-color: #cda434;
+            --accent-hover: #b8932b;
+            --panel-bg: #2c2c30;
+            --notation-bg: #fffbeb;
+            --fretboard-bg: #3e2723;
+            --string-color: #a1a1aa;
+            --fret-color: #cda434;
+        }
 
-        select { padding: 6px; font-size: 0.95rem; border-radius: 4px; border: 1px solid #ccc; min-width: 200px; font-weight: bold; }
-        button { padding: 6px 12px; cursor: pointer; color: white; border: none; border-radius: 4px; font-size: 0.9rem; font-weight: bold; transition: opacity 0.2s; }
-        button:hover { opacity: 0.8; } button:disabled { background: #ccc; cursor: not-allowed; opacity: 0.5; }
-        
-        .btn-play { background: #2e7d32; padding: 8px 30px; font-size: 1rem; } 
-        .btn-stop { background: #c62828; padding: 8px 30px; font-size: 1rem; } 
-        .btn-mode { background: #1976d2; }
-        .btn-save { background: #f57c00; }
-        .btn-del { background: #d32f2f; }
-        .btn-reset { background: #607d8b; font-size: 0.8rem; }
-        input[type=range] { width: 120px; cursor: pointer; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-        .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 0.8rem; color: #777; }
-        .footer a { color: #333; text-decoration: none; font-weight: bold; transition: color 0.2s; }
-        .footer a:hover { text-decoration: underline; color: #d32f2f; }
+        .container {
+            width: 950px;
+            margin: 0 auto;
+            background-color: transparent;
+        }
 
-        .string-line { stroke: #bcaaa4; stroke-width: 2; }
-        .fret-line { stroke: #8d6e63; stroke-width: 3; }
-        .note-circle { fill: #ff9800; stroke: #fff; stroke-width: 2; cursor: pointer; transition: fill 0.05s; }
-        .active-note { fill: #ffff00 !important; stroke: #ff3d00 !important; stroke-width: 4 !important; r: 14 !important; }
-        .note-text { font-family: Arial; font-weight: bold; font-size: 11px; text-anchor: middle; dominant-baseline: middle; fill: white; pointer-events: none;}
-        
-        .stave-line { stroke: #999; stroke-width: 1; }
-        .bar-line { stroke: #333; stroke-width: 2; }
-        .solid-divider { stroke: #000; stroke-width: 2; }
-        .stem { stroke: #000; stroke-width: 2; }
-        .note-head { fill: #000; transition: fill 0.05s; }
-        .active-staff-note { fill: #ff0000 !important; stroke: #ff0000; stroke-width: 1px; r: 7px !important; }
-        .ledger-line { stroke: #000; stroke-width: 1; }
-        .chord-text { font-family: "Times New Roman", serif; font-size: 20px; font-weight: bold; fill: #d32f2f; }
-        .accidental { font-family: "Times New Roman", serif; font-size: 26px; fill: #000; font-weight: normal; }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .status-bar div:first-child {
+            font-family: 'Times New Roman', serif;
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+        }
+
+        .key-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-color);
+            background: var(--panel-bg);
+            padding: 5px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--accent-color);
+        }
+
+        #drop-zone {
+            width: 100%;
+            height: 60px;
+            border: 2px dashed var(--accent-color);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            background: rgba(205, 164, 52, 0.1);
+        }
+
+        #drop-zone.highlight {
+            background-color: rgba(205, 164, 52, 0.3);
+            color: #fff;
+        }
+
+        #notation-container {
+            background-color: var(--notation-bg);
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 5px solid #fff;
+        }
+
+        .control-panel {
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+            border: 1px solid #444;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .select-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #aaa;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select,
+        input[type="range"] {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background-color: #1a1a1d;
+            color: var(--text-color);
+            font-size: 14px;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--accent-color);
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-play {
+            background-color: var(--accent-color);
+            color: #000;
+        }
+
+        .btn-play:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-stop {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-stop:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .btn-save,
+        .btn-del,
+        .btn-reset,
+        .btn-mode {
+            background-color: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-save:hover,
+        .btn-del:hover,
+        .btn-reset:hover,
+        .btn-mode:hover {
+            background-color: rgba(205, 164, 52, 0.1);
+        }
+
+        .area-user {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        #fretboard-container {
+            background-color: var(--fretboard-bg);
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+            border: 2px solid #5d4037;
+        }
+
+        /* SVG Styles */
+        .stave-line {
+            stroke: #666;
+            stroke-width: 1;
+        }
+
+        .bar-line {
+            stroke: #666;
+            stroke-width: 1;
+        }
+
+        .solid-divider {
+            stroke: #000;
+            stroke-width: 3;
+        }
+
+        .ledger-line {
+            stroke: #666;
+            stroke-width: 1;
+        }
+
+        .stem {
+            stroke: #000;
+            stroke-width: 1.5;
+        }
+
+        .note-head {
+            fill: #000;
+            stroke: none;
+            transition: fill 0.05s;
+        }
+
+        .active-note {
+            fill: #fff !important;
+            stroke: #cda434 !important;
+            stroke-width: 3px !important;
+            r: 14px !important;
+            filter: drop-shadow(0 0 5px #cda434);
+        }
+
+        .active-staff-note {
+            fill: #ff0000 !important;
+            stroke: #ff0000;
+            stroke-width: 1px;
+            r: 7px !important;
+        }
+
+        .accidental {
+            font-family: "Times New Roman", serif;
+            font-size: 20px;
+            fill: #000;
+        }
+
+        .chord-text {
+            font-family: "Times New Roman", serif;
+            font-weight: bold;
+            fill: #000;
+        }
+
+        .string-line {
+            stroke: var(--string-color);
+            stroke-width: 2;
+        }
+
+        .fret-line {
+            stroke: var(--fret-color);
+            stroke-width: 2;
+        }
+
+        .note-circle {
+            fill: var(--accent-color);
+            stroke: #fff;
+            stroke-width: 2;
+            cursor: pointer;
+        }
+
+        .note-text {
+            font-size: 10px;
+            fill: #000;
+            font-weight: bold;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            accent-color: var(--accent-color);
+        }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <div class="status-bar">
-        <div>Jazz Lick Trainer (Final)</div>
-        <div class="key-display" id="currentKeyDisplay">Key: C</div>
-    </div>
-    
-    <div id="drop-zone">MIDIファイルをドロップ (4小節以内)</div>
-    <div id="notation-container"></div>
+    <div class="container">
+        <div class="status-bar">
+            <div>Jazz Lick Trainer</div>
+            <div class="key-display" id="currentKeyDisplay">Key: C</div>
+        </div>
 
-    <div class="control-panel">
-        <div class="control-row">
-            <div class="select-group area-preset">
-                <label>📖 内蔵プリセット</label>
-                <select id="presetSelect" onchange="changePreset()"></select>
+        <div id="drop-zone">MIDIファイルをドロップ (4小節以内)</div>
+        <div id="notation-container"></div>
+
+        <div class="control-panel">
+            <div class="control-row">
+                <div class="select-group area-preset">
+                    <label>📖 内蔵プリセット</label>
+                    <select id="presetSelect" onchange="changePreset()"></select>
+                </div>
+                <div style="color:#aaa; font-weight:bold; align-self:center; padding-bottom:10px;">OR</div>
+                <div class="area-user">
+                    <div class="select-group">
+                        <label>👤 ユーザー / Import</label>
+                        <select id="userSelect" onchange="changeUser()">
+                            <option value="" selected>-- 選択なし --</option>
+                        </select>
+                    </div>
+                    <button class="btn-save" onclick="saveUserPreset()">💾 保存</button>
+                    <button class="btn-del" onclick="deleteCurrentPreset()">🗑️ 削除</button>
+                </div>
+                <button class="btn-reset" onclick="clearAllUserPresets()"
+                    style="align-self: center; margin-left: 10px;">全消去</button>
             </div>
-            <div style="color:#aaa; font-weight:bold; align-self:center; padding-bottom:10px;">OR</div>
-            <div class="area-user">
+
+            <hr style="width:95%; border:0; border-top:1px solid #ddd;">
+
+            <div class="control-row">
                 <div class="select-group">
-                    <label>👤 ユーザー / Import</label>
-                    <select id="userSelect" onchange="changeUser()">
-                        <option value="" selected>-- 選択なし --</option>
+                    <label>Key</label>
+                    <select id="keySelect" onchange="changeKeyManual()" style="width:80px;"></select>
+                </div>
+
+                <div class="select-group">
+                    <label>Start String</label>
+                    <select id="rootStringSelect" onchange="changeKeyManual()" style="width:110px; font-weight:bold;">
+                        <option value="6">6弦 (Low)</option>
+                        <option value="5" selected>5弦 (Mid)</option>
+                        <option value="4">4弦 (High)</option>
                     </select>
                 </div>
-                <button class="btn-save" onclick="saveUserPreset()">💾 保存</button>
-                <button class="btn-del" onclick="deleteCurrentPreset()">🗑️ 削除</button>
-            </div>
-            <button class="btn-reset" onclick="clearAllUserPresets()" style="align-self: center; margin-left: 10px;">全消去</button>
-        </div>
 
-        <hr style="width:95%; border:0; border-top:1px solid #ddd;">
+                <div class="select-group">
+                    <label>BPM: <span id="bpmDisplay">60</span></label>
+                    <input type="range" id="bpmInput" value="60" min="40" max="240" style="width:120px;"
+                        oninput="updateBpmDisplay(this.value)">
+                </div>
 
-        <div class="control-row">
-            <div class="select-group">
-                <label>Key</label>
-                <select id="keySelect" onchange="changeKeyManual()" style="width:80px;"></select>
-            </div>
-            
-            <div class="select-group">
-                <label>Start String</label>
-                <select id="rootStringSelect" onchange="changeKeyManual()" style="width:110px; background:#e0f7fa; font-weight:bold;">
-                    <option value="6">6弦 (Low)</option>
-                    <option value="5" selected>5弦 (Mid)</option>
-                    <option value="4">4弦 (High)</option>
-                </select>
+                <div
+                    style="display: flex; gap: 10px; align-items: center; background: #fff; padding: 5px 10px; border-radius: 5px; border: 1px solid #ddd; height: 40px;">
+                    <label style="cursor:pointer;"><input type="checkbox" id="cycleMode" checked> Cycle</label>
+                    <label style="cursor:pointer; color: #d32f2f;"><input type="checkbox" id="octaveUp"
+                            onchange="changeKeyManual()"> <b>+1 Oct</b></label>
+                    <label style="cursor:pointer;"><input type="checkbox" id="backbeatMode"> 2&4</label>
+                </div>
             </div>
 
-            <div class="select-group">
-                <label>BPM: <span id="bpmDisplay">60</span></label>
-                <input type="range" id="bpmInput" value="60" min="40" max="240" style="width:120px;" oninput="updateBpmDisplay(this.value)">
-            </div>
-            
-            <div style="display: flex; gap: 10px; align-items: center; background: #fff; padding: 5px 10px; border-radius: 5px; border: 1px solid #ddd; height: 40px;">
-                <label style="cursor:pointer;"><input type="checkbox" id="cycleMode" checked> Cycle</label>
-                <label style="cursor:pointer; color: #d32f2f;"><input type="checkbox" id="octaveUp" onchange="changeKeyManual()"> <b>+1 Oct</b></label>
-                <label style="cursor:pointer;"><input type="checkbox" id="backbeatMode"> 2&4</label>
+            <div class="control-row">
+                <button id="playBtn" class="btn-play" onclick="startSequence()">▶ Start</button>
+                <button id="stopBtn" class="btn-stop" onclick="stopSequence()" disabled>■ Stop</button>
+                <button class="btn-mode" onclick="toggleDisplayMode()">Display Mode</button>
             </div>
         </div>
-        
-        <div class="control-row">
-            <button id="playBtn" class="btn-play" onclick="startSequence()">▶ Start</button>
-            <button id="stopBtn" class="btn-stop" onclick="stopSequence()" disabled>■ Stop</button>
-            <button class="btn-mode" onclick="toggleDisplayMode()">Display Mode</button>
+        <div id="fretboard-container">
+            <div id="fretboard"></div>
         </div>
+        <div class="footer">Special Thanks To <a href="https://toshikinunokawa.com/online-salon/" target="_blank"
+                rel="noopener noreferrer">Toshiki Nunokawa Online Salon</a></div>
     </div>
-    <div id="fretboard-container"><div id="fretboard"></div></div>
-    <div class="footer">Special Thanks To <a href="https://toshikinunokawa.com/online-salon/" target="_blank" rel="noopener noreferrer">Toshiki Nunokawa Online Salon</a></div>
-</div>
 
-<script>
-    const keyCycle = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"];
-    const STORAGE_KEY = "jazzLickUserPresets_v50_Final"; 
-    const stringBaseMidi = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
-    
-    // 音名定義
-    const notesFlat = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-    const notesSharp = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    <script>
+        const keyCycle = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"];
+        const STORAGE_KEY = "jazzLickUserPresets_v50_Final";
+        const stringBaseMidi = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
 
-    const keySignatures = { 
-        "C": {n:0,t:"f"}, "F": {n:1,t:"f"}, "Bb": {n:2,t:"f"}, "Eb": {n:3,t:"f"}, "Ab": {n:4,t:"f"}, "Db": {n:5,t:"f"}, "Gb": {n:6,t:"f"}, 
-        "B": {n:5,t:"s"}, "E": {n:4,t:"s"}, "A": {n:3,t:"s"}, "D": {n:2,t:"s"}, "G": {n:1,t:"s"} 
-    };
-    const degreeMap = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
+        // 音名定義
+        const notesFlat = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+        const notesSharp = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-    const defaultLibrary = [
-        { name: "1. Basic Smooth", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "A", string: 4, fret: 7, duration: "8", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "8", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "V" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "4", chord: "" },{ noteName: "E", string: 5, fret: 7, duration: "4", chord: "I" }] },
-        { name: "2. 9th Descent", data: [{ noteName: "E", string: 5, fret: 7, duration: "8", chord: "II" },{ noteName: "C", string: 5, fret: 3, duration: "8", chord: "" },{ noteName: "A", string: 6, fret: 5, duration: "8", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", chord: "V" },{ noteName: "E", string: 6, fret: 0, duration: "8", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "4", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "4", chord: "I" }] },
-        { name: "3. Lydian Resolution", data: [{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "II" },{ noteName: "E", string: 4, fret: 2, duration: "8", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "8", chord: "" },{ noteName: "B", string: 5, fret: 2, duration: "8", chord: "V" },{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "" },{ noteName: "F", string: 4, fret: 3, duration: "4", chord: "" },{ noteName: "E", string: 4, fret: 2, duration: "4", chord: "I" }] },
-        { name: "4. Altered Tension", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "E", string: 5, fret: 7, duration: "8", chord: "" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "8", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "V" },{ noteName: "Bb", string: 3, fret: 3, duration: "8", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "4", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", chord: "I" }] },
-        { name: "5. Parker Enclosure", data: [{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "II" },{ noteName: "E", string: 4, fret: 2, duration: "8", chord: "" },{ noteName: "Eb", string: 4, fret: 1, duration: "8", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "" },{ noteName: "Db", string: 5, fret: 4, duration: "8", chord: "V" },{ noteName: "C", string: 5, fret: 3, duration: "8", chord: "" },{ noteName: "B", string: 5, fret: 2, duration: "4", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "4", chord: "I" }] },
-        { name: "6. Bebop Dominant", data: [{ noteName: "C", string: 5, fret: 3, duration: "8", chord: "II" },{ noteName: "A", string: 6, fret: 5, duration: "8", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "8", chord: "" },{ noteName: "D", string: 6, fret: 10, duration: "8", chord: "" },{ noteName: "G", string: 6, fret: 3, duration: "8", chord: "V" },{ noteName: "B", string: 5, fret: 2, duration: "8", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "4", chord: "" },{ noteName: "E", string: 5, fret: 7, duration: "4", chord: "I" }] },
-        { name: "7. Honeysuckle Arpeggio", data: [{ noteName: "C", string: 5, fret: 3, duration: "8", chord: "II" },{ noteName: "B", string: 5, fret: 2, duration: "8", chord: "" },{ noteName: "Bb", string: 5, fret: 1, duration: "8", chord: "" },{ noteName: "A", string: 6, fret: 5, duration: "8", chord: "" },{ noteName: "Ab", string: 6, fret: 4, duration: "8", chord: "V" },{ noteName: "G", string: 6, fret: 3, duration: "8", chord: "" },{ noteName: "F", string: 6, fret: 1, duration: "4", chord: "" },{ noteName: "E", string: 6, fret: 0, duration: "4", chord: "I" }] },
-        { name: "8. Chromatic Approach", data: [{ noteName: "E", string: 5, fret: 7, duration: "8", chord: "II" },{ noteName: "Eb", string: 5, fret: 6, duration: "8", chord: "" },{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "" },{ noteName: "Db", string: 5, fret: 4, duration: "8", chord: "" },{ noteName: "C", string: 5, fret: 3, duration: "8", chord: "V" },{ noteName: "B", string: 5, fret: 2, duration: "8", chord: "" },{ noteName: "Bb", string: 5, fret: 1, duration: "4", chord: "" },{ noteName: "B", string: 5, fret: 2, duration: "4", chord: "I" }] },
-        { name: "9. 1-2-3-5 Pattern", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "E", string: 5, fret: 7, duration: "8", chord: "" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "A", string: 4, fret: 7, duration: "8", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "8", chord: "V" },{ noteName: "A", string: 4, fret: 7, duration: "8", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "4", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", chord: "I" }] },
-        { name: "10. Sheets of Sound", data: [{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "II" },{ noteName: "A", string: 4, fret: 7, duration: "8", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "8", chord: "" },{ noteName: "E", string: 2, fret: 5, duration: "8", chord: "" },{ noteName: "Eb", string: 2, fret: 4, duration: "8", chord: "V" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "" },{ noteName: "G", string: 4, fret: 5, duration: "4", chord: "" },{ noteName: "C", string: 3, fret: 5, duration: "4", chord: "I" }] },
-        { name: "11. Whole Tone V", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "" },{ noteName: "Bb", string: 3, fret: 3, duration: "8", chord: "" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "V" },{ noteName: "Db", string: 2, fret: 2, duration: "8", chord: "" },{ noteName: "Eb", string: 2, fret: 4, duration: "4", chord: "" },{ noteName: "E", string: 1, fret: 0, duration: "4", chord: "I" }] },
-        { name: "12. Diminished V", data: [{ noteName: "D", string: 5, fret: 5, duration: "8", chord: "II" },{ noteName: "F", string: 4, fret: 3, duration: "8", chord: "" },{ noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "V" },{ noteName: "B", string: 3, fret: 4, duration: "8", chord: "" },{ noteName: "D", string: 3, fret: 7, duration: "8", chord: "" },{ noteName: "F", string: 2, fret: 6, duration: "8", chord: "" },{ noteName: "G", string: 1, fret: 3, duration: "4", chord: "" },{ noteName: "C", string: 2, fret: 1, duration: "4", chord: "I" }] },
-    ];
-
-    let userLibrary = [];
-    let importedLick = null;
-    let synth = null;
-    let clickSynth = null;
-
-    const AppState = {
-        currentKeyIndex: 0,
-        currentLickBase: defaultLibrary[0].data,
-        currentLickData: [],
-        currentHandPos: 5,
-        isPlaying: false,
-        displayMode: "noteName"
-    };
-
-    window.onload = () => {
-        try {
-            loadUserPresets();
-            setupUI();
-            setupDropZone();
-            updateGlobalData(0); 
-            renderAll();
-        } catch(e) { console.error(e); }
-    };
-
-    function loadUserPresets() { const s=localStorage.getItem(STORAGE_KEY); if(s){try{userLibrary=JSON.parse(s)}catch(e){} } }
-    function setupUI() {
-        const kSel = document.getElementById("keySelect");
-        if(kSel.options.length === 0) {
-            keyCycle.forEach((k, i) => { let opt = document.createElement("option"); opt.value = i; opt.text = k; kSel.appendChild(opt); });
-        }
-        const pSel = document.getElementById("presetSelect"); pSel.innerHTML="";
-        defaultLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value=i;o.text=l.name;pSel.appendChild(o)});
-        updateUserSelect();
-    }
-    function updateUserSelect() {
-        const uSel=document.getElementById("userSelect"); uSel.innerHTML='<option value="" selected>-- 選択なし --</option>';
-        userLibrary.forEach((l,i)=>{let o=document.createElement("option");o.value="user-"+i;o.text=l.name;uSel.appendChild(o)});
-        if(importedLick){let o=document.createElement("option");o.value="import";o.text=importedLick.name;o.style.color="blue";uSel.appendChild(o);}
-    }
-    function changePreset(){ let i=document.getElementById("presetSelect").value; AppState.currentLickBase=defaultLibrary[i].data; document.getElementById("userSelect").value=""; updateGlobalData(AppState.currentKeyIndex); renderAll(); }
-    function changeUser(){ let v=document.getElementById("userSelect").value; if(!v)return; if(v==="import")AppState.currentLickBase=importedLick.data; else AppState.currentLickBase=userLibrary[parseInt(v.split("-")[1])].data; updateGlobalData(AppState.currentKeyIndex); renderAll(); }
-    function saveUserPreset(){ const n=prompt("保存名:","My Lick"); if(n){userLibrary.push({name:"★ "+n,data:AppState.currentLickBase}); localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary)); updateUserSelect(); document.getElementById("userSelect").value="user-"+(userLibrary.length-1); alert("保存しました");} }
-    function deleteCurrentPreset(){ const v=document.getElementById("userSelect").value; if(!v){alert("選択してください");return;} if(v==="import"){importedLick=null;updateUserSelect();changePreset();return;} if(confirm("削除しますか？")){userLibrary.splice(parseInt(v.split("-")[1]),1);localStorage.setItem(STORAGE_KEY,JSON.stringify(userLibrary));updateUserSelect();changePreset();}}
-    function clearAllUserPresets(){ if(confirm("全消去?")){localStorage.removeItem(STORAGE_KEY); userLibrary=[]; updateUserSelect(); changePreset();} }
-    function updateBpmDisplay(v){ document.getElementById("bpmDisplay").innerText=v; if(Tone.Transport.state==='started')Tone.Transport.bpm.rampTo(v,0.1); }
-    
-    async function changeKeyManual(){ 
-        updateGlobalData(parseInt(document.getElementById("keySelect").value)); 
-        renderAll();
-        if(AppState.isPlaying) {
-            stopSequence();
-            await startSequence();
-        }
-    }
-
-    // 計算ロジック
-    function getCalculatedLickData(keyIdx) {
-        let keyName = keyCycle[keyIdx];
-        let targetKeyIndex = notesFlat.indexOf(keyName); 
-        let startStr = parseInt(document.getElementById("rootStringSelect").value);
-        let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
-        if (targetStr < 1) targetStr = 1; 
-
-        let strBaseMidi = stringBaseMidi[targetStr]; 
-        let anchorFret = (targetKeyIndex - (strBaseMidi % 12) + 12) % 12;
-        if(anchorFret < 3) anchorFret += 12; 
-        if(document.getElementById("octaveUp").checked) anchorFret += 12;
-        if(anchorFret > 20) anchorFret -= 12;
-
-        let targetRootMidi = strBaseMidi + anchorFret;
-        let shift = targetRootMidi - 48; 
-        let currentNoteNames = (keySignatures[keyName].t === 's') ? notesSharp : notesFlat;
-
-        let targetMidiNotes = AppState.currentLickBase.map(d => {
-            let baseMidi = stringBaseMidi[d.string] + d.fret;
-            let finalMidi = baseMidi + shift;
-            let notePc = finalMidi % 12;
-            let interval = (notePc - targetKeyIndex + 12) % 12;
-            let dynDegree = degreeMap[interval];
-            return { midi: finalMidi, duration: d.duration, chord: d.chord, degree: dynDegree };
-        });
-
-        return {
-            data: optimizeFingering(targetMidiNotes, anchorFret, currentNoteNames),
-            anchorFret: anchorFret
+        const keySignatures = {
+            "C": { n: 0, t: "f" }, "F": { n: 1, t: "f" }, "Bb": { n: 2, t: "f" }, "Eb": { n: 3, t: "f" }, "Ab": { n: 4, t: "f" }, "Db": { n: 5, t: "f" }, "Gb": { n: 6, t: "f" },
+            "B": { n: 5, t: "s" }, "E": { n: 4, t: "s" }, "A": { n: 3, t: "s" }, "D": { n: 2, t: "s" }, "G": { n: 1, t: "s" }
         };
-    }
+        const degreeMap = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
 
-    function updateGlobalData(keyIdx) {
-        let result = getCalculatedLickData(keyIdx);
-        AppState.currentKeyIndex = keyIdx;
-        AppState.currentLickData = result.data;
-        AppState.currentHandPos = result.anchorFret;
-        
-        let keyName = keyCycle[keyIdx];
-        document.getElementById("currentKeyDisplay").innerText = "Key: " + keyName;
-        document.getElementById("keySelect").value = keyIdx;
-    }
+        const defaultLibrary = [
+            // --- Beginner (Textbook) ---
+            {
+                name: "1. Guide Tones (Beg)", data: [
+                    { noteName: "F", string: 4, fret: 3, duration: "2", chord: "II", beat: 0, durationBeats: 2.0 },
+                    { noteName: "F", string: 4, fret: 3, duration: "2", chord: "", beat: 2, durationBeats: 2.0 },
+                    { noteName: "F", string: 4, fret: 3, duration: "2", chord: "V", beat: 4, durationBeats: 2.0 },
+                    { noteName: "E", string: 4, fret: 2, duration: "2", chord: "", beat: 6, durationBeats: 2.0 },
+                    { noteName: "E", string: 4, fret: 2, duration: "1", chord: "I", beat: 8, durationBeats: 4.0 },
+                    { noteName: "C#", string: 5, fret: 4, duration: "1", chord: "VI", beat: 12, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "2. Arpeggio 1-3-5-7 (Beg)", data: [
+                    { noteName: "D", string: 5, fret: 5, duration: "4", chord: "II", beat: 0, durationBeats: 1.0 },
+                    { noteName: "F", string: 4, fret: 3, duration: "4", chord: "", beat: 1, durationBeats: 1.0 },
+                    { noteName: "A", string: 4, fret: 7, duration: "4", chord: "", beat: 2, durationBeats: 1.0 },
+                    { noteName: "C", string: 3, fret: 5, duration: "4", chord: "", beat: 3, durationBeats: 1.0 },
+                    { noteName: "B", string: 3, fret: 4, duration: "4", chord: "V", beat: 4, durationBeats: 1.0 },
+                    { noteName: "G", string: 4, fret: 5, duration: "4", chord: "", beat: 5, durationBeats: 1.0 },
+                    { noteName: "F", string: 4, fret: 3, duration: "4", chord: "", beat: 6, durationBeats: 1.0 },
+                    { noteName: "D", string: 5, fret: 5, duration: "4", chord: "", beat: 7, durationBeats: 1.0 },
+                    { noteName: "C", string: 5, fret: 3, duration: "1", chord: "I", beat: 8, durationBeats: 4.0 },
+                    { noteName: "A", string: 6, fret: 5, duration: "1", chord: "VI", beat: 12, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "3. Scale Run (Beg)", data: [
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "E", string: 5, fret: 7, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 2.0, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "8", chord: "", beat: 2.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "8", chord: "", beat: 3.0, durationBeats: 0.5 },
+                    { noteName: "D", string: 3, fret: 7, duration: "8", chord: "", beat: 3.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "1", chord: "V", beat: 4.0, durationBeats: 4.0 },
+                    { noteName: "C", string: 3, fret: 5, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 6, fret: 5, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "4. Simple Motif (Beg)", data: [
+                    { noteName: "A", string: 4, fret: 7, duration: "4", chord: "II", beat: 0, durationBeats: 1.0 },
+                    { noteName: "G", string: 4, fret: 5, duration: "4", chord: "", beat: 1.0, durationBeats: 1.0 },
+                    { noteName: "F", string: 4, fret: 3, duration: "2", chord: "", beat: 2.0, durationBeats: 2.0 },
+                    { noteName: "G", string: 4, fret: 5, duration: "4", chord: "V", beat: 4.0, durationBeats: 1.0 },
+                    { noteName: "F", string: 4, fret: 3, duration: "4", chord: "", beat: 5.0, durationBeats: 1.0 },
+                    { noteName: "E", string: 4, fret: 2, duration: "2", chord: "", beat: 6.0, durationBeats: 2.0 },
+                    { noteName: "C", string: 5, fret: 3, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 6, fret: 5, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
 
-    function optimizeFingering(notes, anchorFret, noteNameArray) {
-        let lick = [];
-        let boxMin = anchorFret - 2;
-        let boxMax = anchorFret + 5;
-        notes.forEach((n) => {
-            let candidates = [];
-            for(let s=1; s<=6; s++) {
-                let f = n.midi - stringBaseMidi[s];
-                if(f >= 0 && f <= 24) candidates.push({string: s, fret: f});
-            }
-            if(candidates.length > 0) {
-                candidates.sort((a, b) => {
-                    let costA = Math.abs(a.fret - anchorFret);
-                    let costB = Math.abs(b.fret - anchorFret);
-                    if(a.fret < boxMin || a.fret > boxMax) costA += 100;
-                    if(b.fret < boxMin || b.fret > boxMax) costB += 100;
-                    return costA - costB;
-                });
-                let best = candidates[0];
-                let nameIdx = n.midi % 12;
-                let oct = Math.floor((n.midi+12)/12) - 1;
-                lick.push({
-                    noteName: noteNameArray[nameIdx], octave: oct, midi: n.midi,
-                    string: best.string, fret: best.fret, duration: n.duration, chord: n.chord, degree: n.degree
-                });
-            }
-        });
-        return lick;
-    }
+            // --- Intermediate (Charlie Parker) ---
+            {
+                name: "5. Bebop Scale (Int)", data: [
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "E", string: 5, fret: 7, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 2.0, durationBeats: 0.5 },
+                    { noteName: "Bb", string: 3, fret: 3, duration: "8", chord: "", beat: 2.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "8", chord: "", beat: 3.0, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "8", chord: "", beat: 3.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 6.0, durationBeats: 0.5 },
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "", beat: 6.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 5, fret: 2, duration: "8", chord: "", beat: 7.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 6, fret: 3, duration: "8", chord: "", beat: 7.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 5, fret: 3, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 6, fret: 5, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "6. Enclosure (Int)", data: [
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "E", string: 4, fret: 2, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "Eb", string: 4, fret: 1, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "Db", string: 5, fret: 4, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "C", string: 5, fret: 3, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 5, fret: 2, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 6.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 6.5, durationBeats: 0.5 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "", beat: 7.0, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 7.5, durationBeats: 0.5 },
+                    { noteName: "E", string: 4, fret: 2, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "C#", string: 5, fret: 4, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "7. 3-b9 Arp (Int)", data: [
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "E", string: 2, fret: 5, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "B", string: 5, fret: 2, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "G", string: 6, fret: 3, duration: "8", chord: "", beat: 6.0, durationBeats: 0.5 },
+                    { noteName: "F", string: 6, fret: 1, duration: "8", chord: "", beat: 6.5, durationBeats: 0.5 },
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "", beat: 7.0, durationBeats: 0.5 },
+                    { noteName: "B", string: 5, fret: 2, duration: "8", chord: "", beat: 7.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 5, fret: 3, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 6, fret: 5, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "8. Parker Turnaround (Int)", data: [
+                    { noteName: "C", string: 5, fret: 3, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "B", string: 5, fret: 2, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "Bb", string: 5, fret: 1, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 6, fret: 5, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "Ab", string: 6, fret: 4, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 6, fret: 3, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "Gb", string: 6, fret: 2, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "F", string: 6, fret: 1, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "E", string: 6, fret: 0, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 6, fret: 5, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
 
-    function shouldDrawAccidental(noteName, keyName) {
-        const letter = noteName.charAt(0);
-        const actualAcc = noteName.slice(1);
-        const sig = keySignatures[keyName];
-        let expectedAcc = "";
-        
-        if (sig.n > 0) {
-            if (sig.t === "f") {
-                const flatsOrder = ["B", "E", "A", "D", "G", "C", "F"];
-                const affected = flatsOrder.slice(0, sig.n);
-                if (affected.includes(letter)) expectedAcc = "b";
-            } else {
-                const sharpsOrder = ["F", "C", "G", "D", "A", "E", "B"];
-                const affected = sharpsOrder.slice(0, sig.n);
-                if (affected.includes(letter)) expectedAcc = "#";
+            // --- Advanced (John Coltrane) ---
+            {
+                name: "9. 1-2-3-5 Perm (Adv)", data: [
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "E", string: 5, fret: 7, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "D", string: 3, fret: 7, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 4, fret: 7, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "10. Diminished Scale (Adv)", data: [
+                    { noteName: "D", string: 5, fret: 5, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "Ab", string: 4, fret: 6, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "Bb", string: 3, fret: 3, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "Db", string: 2, fret: 2, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "D", string: 3, fret: 7, duration: "8", chord: "", beat: 6.0, durationBeats: 0.5 },
+                    { noteName: "E", string: 2, fret: 5, duration: "8", chord: "", beat: 6.5, durationBeats: 0.5 },
+                    { noteName: "F", string: 2, fret: 6, duration: "8", chord: "", beat: 7.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 1, fret: 3, duration: "8", chord: "", beat: 7.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 4, fret: 7, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "11. Whole Tone (Adv)", data: [
+                    { noteName: "D", string: 5, fret: 5, duration: "4", chord: "II", beat: 0, durationBeats: 1.0 },
+                    { noteName: "F", string: 4, fret: 3, duration: "4", chord: "", beat: 1.0, durationBeats: 1.0 },
+                    { noteName: "A", string: 4, fret: 7, duration: "4", chord: "", beat: 2.0, durationBeats: 1.0 },
+                    { noteName: "C", string: 3, fret: 5, duration: "4", chord: "", beat: 3.0, durationBeats: 1.0 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "C#", string: 3, fret: 6, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "D#", string: 3, fret: 8, duration: "8", chord: "", beat: 6.0, durationBeats: 0.5 },
+                    { noteName: "F", string: 2, fret: 6, duration: "8", chord: "", beat: 6.5, durationBeats: 0.5 },
+                    { noteName: "G", string: 1, fret: 3, duration: "8", chord: "", beat: 7.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 1, fret: 5, duration: "8", chord: "", beat: 7.5, durationBeats: 0.5 },
+                    { noteName: "D", string: 3, fret: 7, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "C#", string: 3, fret: 6, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
+            },
+            {
+                name: "12. Sheets of Sound (Adv)", data: [
+                    { noteName: "F", string: 4, fret: 3, duration: "8", chord: "II", beat: 0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 0.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "8", chord: "", beat: 1.0, durationBeats: 0.5 },
+                    { noteName: "E", string: 2, fret: 5, duration: "8", chord: "", beat: 1.5, durationBeats: 0.5 },
+                    { noteName: "G", string: 1, fret: 3, duration: "8", chord: "", beat: 2.0, durationBeats: 0.5 },
+                    { noteName: "E", string: 2, fret: 5, duration: "8", chord: "", beat: 2.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 3, fret: 5, duration: "8", chord: "", beat: 3.0, durationBeats: 0.5 },
+                    { noteName: "A", string: 4, fret: 7, duration: "8", chord: "", beat: 3.5, durationBeats: 0.5 },
+                    { noteName: "Eb", string: 2, fret: 4, duration: "8", chord: "V", beat: 4.0, durationBeats: 0.5 },
+                    { noteName: "B", string: 3, fret: 4, duration: "8", chord: "", beat: 4.5, durationBeats: 0.5 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "", beat: 5.0, durationBeats: 0.5 },
+                    { noteName: "Eb", string: 5, fret: 6, duration: "8", chord: "", beat: 5.5, durationBeats: 0.5 },
+                    { noteName: "B", string: 5, fret: 2, duration: "8", chord: "", beat: 6.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 6, fret: 3, duration: "8", chord: "", beat: 6.5, durationBeats: 0.5 },
+                    { noteName: "Eb", string: 5, fret: 6, duration: "8", chord: "", beat: 7.0, durationBeats: 0.5 },
+                    { noteName: "G", string: 4, fret: 5, duration: "8", chord: "", beat: 7.5, durationBeats: 0.5 },
+                    { noteName: "C", string: 5, fret: 3, duration: "1", chord: "I", beat: 8.0, durationBeats: 4.0 },
+                    { noteName: "A", string: 6, fret: 5, duration: "1", chord: "VI", beat: 12.0, durationBeats: 4.0 }
+                ]
             }
+        ];
+        // Helper to ensure legacy data works (simple sequential assignment if 'beat' is missing)
+        function normalizeLickData(data) {
+            let currentBeat = 0;
+            return data.map(d => {
+                let dur = (d.duration === "4") ? 1.0 : 0.5;
+                if (d.beat === undefined) {
+                    let item = { ...d, beat: currentBeat, durationBeats: dur };
+                    currentBeat += dur;
+                    return item;
+                }
+                return d;
+            });
         }
-        return actualAcc !== expectedAcc;
-    }
+        // Apply normalization to default library on load
+        defaultLibrary.forEach(l => l.data = normalizeLickData(l.data));
 
-    function setupDropZone(){const d=document.getElementById("drop-zone");d.addEventListener("dragover",e=>{e.preventDefault();d.classList.add("highlight")});d.addEventListener("dragleave",()=>d.classList.remove("highlight"));d.addEventListener("drop",handleDrop);}
-    async function handleDrop(e){e.preventDefault();document.getElementById("drop-zone").classList.remove("highlight");let f=e.dataTransfer.files[0];if(f){let b=await f.arrayBuffer();parseMidi(b,f.name);}}
-    function parseMidi(b,n){
-        const m=new Midi(b); if(m.tracks.length===0)return;
-        let t=m.tracks[0].notes.map(x=>({midi:x.midi,duration:x.duration>0.35?"4":"8",chord:"",degree:degreeMap[x.midi%12]}));
-        let o=optimizeFingering(t,5, notesFlat);if(o.length>0)o[0].chord="Start";
-        importedLick={name:"📂 "+n,data:o};updateUserSelect();document.getElementById("userSelect").value="import";changeUser();
-    }
 
-    function renderAll() { renderManualNotation(); renderFretboard(); }
+        let userLibrary = [];
+        let importedLick = null;
+        let synth = null;
+        let clickSynth = null;
 
-    function renderManualNotation() {
-        const container = document.getElementById("notation-container"); container.innerHTML = "";
-        const width = 900; height = 220; 
-        const ns = "http://www.w3.org/2000/svg";
-        const svg = document.createElementNS(ns, "svg");
-        svg.setAttribute("width", width); svg.setAttribute("height", height);
-        
-        // ★ startX=240 でマージン確保 (二重線コードは削除)
-        const topY=90, startX=240, gap=55;
+        const AppState = {
+            currentKeyIndex: 0,
+            currentLickBase: defaultLibrary[0].data,
+            currentLickData: [],
+            currentHandPos: 5,
+            isPlaying: false,
+            displayMode: "noteName"
+        };
 
-        for(let i=0;i<5;i++){
-            let y=topY+i*10; let l=document.createElementNS(ns,"line");
-            l.setAttribute("x1",20); l.setAttribute("x2",width-20); l.setAttribute("y1",y); l.setAttribute("y2",y); l.setAttribute("class","stave-line"); svg.appendChild(l);
-        }
-        let cl=document.createElementNS(ns,"text"); cl.setAttribute("x",30); cl.setAttribute("y",topY+30); cl.setAttribute("font-size","45"); cl.textContent="𝄞"; svg.appendChild(cl);
-        drawKeySignature(svg,ns,topY);
-
-        let div1X = startX + (3.5 * gap); drawDivider(svg,ns,div1X,topY,"solid");
-        let barX = startX + (7 * gap); drawDivider(svg,ns,barX,topY,"bar");
-        let div2X = startX + (7 * gap) + 40 + (0.8*gap); drawDivider(svg,ns,div2X,topY,"solid");
-
-        const steps={"C":0,"D":1,"E":2,"F":3,"G":4,"A":5,"B":6};
-        let currentKeyName = keyCycle[AppState.currentKeyIndex];
-
-        AppState.currentLickData.forEach((d, i) => {
-            let x=startX+i*gap; if(i>=7)x+=40;
-            let nv=steps[d.noteName.substring(0,1)]; let as=d.octave*7+nv; let f5=5*7+3; let cy=topY+(f5-as)*5;
-            if(d.chord){let t=document.createElementNS(ns,"text");let l=d.chord;if(l.length<=2&&l!=="Start")l=getTransposedChordName(l);t.setAttribute("x",x);t.setAttribute("y",topY-25);t.setAttribute("class","chord-text");t.setAttribute("text-anchor","middle");t.textContent=l;svg.appendChild(t);}
-            if(f5-as>=10||f5-as<=-2){let ly=cy;if((f5-as)%2!==0)ly=(f5-as>0)?cy-5:cy+5;let ll=document.createElementNS(ns,"line");ll.setAttribute("x1",x-12);ll.setAttribute("x2",x+12);ll.setAttribute("y1",ly);ll.setAttribute("y2",ly);ll.setAttribute("class","ledger-line");svg.appendChild(ll);}
-            let hd=document.createElementNS(ns,"ellipse");hd.setAttribute("id","staff-note-"+i);hd.setAttribute("cx",x);hd.setAttribute("cy",cy);hd.setAttribute("rx",6);hd.setAttribute("ry",4.5);hd.setAttribute("transform",`rotate(-20 ${x} ${cy})`);hd.setAttribute("class","note-head");svg.appendChild(hd);
-            
-            if(shouldDrawAccidental(d.noteName, currentKeyName)){
-                let ac=document.createElementNS(ns,"text"); 
-                ac.setAttribute("x",x-26); ac.setAttribute("y",cy+8); ac.setAttribute("class","accidental");
-                let s = "";
-                if(d.noteName.includes("b")) s = "♭";
-                else if(d.noteName.includes("#")) s = "♯";
-                else s = "♮";
-                ac.textContent=s; svg.appendChild(ac);
-            }
-            
-            let se=cy-30; let sx=x+5; if(cy<80){se=cy+30; sx=x-5;}
-            let st=document.createElementNS(ns,"line"); st.setAttribute("x1",sx); st.setAttribute("x2",sx); st.setAttribute("y1",cy); st.setAttribute("y2",se); st.setAttribute("class","stem"); svg.appendChild(st);
-            if(d.duration==="8"){let fl=document.createElementNS(ns,"path");let p=(cy<80)?`M ${sx} ${se} Q ${sx+8} ${se-10} ${sx+8} ${se-20}`:`M ${sx} ${se} Q ${sx+8} ${se+10} ${sx+8} ${se+20}`;fl.setAttribute("d",p);fl.setAttribute("stroke","black");fl.setAttribute("stroke-width",2);fl.setAttribute("fill","none");svg.appendChild(fl);}
-        });
-        container.appendChild(svg);
-    }
-
-    function drawDivider(s,n,x,y,t){let l=document.createElementNS(n,"line");l.setAttribute("x1",x);l.setAttribute("x2",x);l.setAttribute("y1",y);l.setAttribute("y2",y+40);l.setAttribute("class",t==="bar"?"bar-line":"solid-divider");s.appendChild(l);}
-    
-    function drawKeySignature(s,n,y){
-        let k=keyCycle[AppState.currentKeyIndex];
-        let sg=keySignatures[k];
-        if(!sg||sg.n===0)return;
-        let fs=[4,1,5,2,6,3],ss=[0,3,-1,2,5];
-        let st=sg.t==="f"?fs:ss;
-        let sm=sg.t==="f"?"♭":"♯";
-        for(let i=0;i<sg.n;i++){
-            let ty=y+st[i]*5;
-            let t=document.createElementNS(n,"text");
-            t.setAttribute("x", 75 + i * 14);
-            t.setAttribute("y",ty+8); 
-            t.setAttribute("class","accidental");
-            t.textContent=sm;s.appendChild(t);
-        }
-    }
-
-    function getTransposedChordName(t){if(!["II","V","I","VI"].includes(t))return t;let r=notesFlat.indexOf(keyCycle[AppState.currentKeyIndex]);let sh={"II":2,"V":7,"I":0,"VI":9}[t];return notesFlat[(r+sh)%12]+{"II":"m7","V":"7","I":"maj7","VI":"7"}[t];}
-    function renderFretboard(){const c=document.getElementById("fretboard-container");c.innerHTML="";const w=950,h=180;const ns="http://www.w3.org/2000/svg";const svg=document.createElementNS(ns,"svg");svg.setAttribute("width",w);svg.setAttribute("height",h);const mx=30,my=20,sg=25,fg=38;for(let i=0;i<=24;i++){let x=mx+i*fg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",x);l.setAttribute("x2",x);l.setAttribute("y1",my);l.setAttribute("y2",my+5*sg);l.setAttribute("class",i===0?"string-line":"fret-line");if(i===0)l.setAttribute("stroke-width",5);svg.appendChild(l);if([3,5,7,9,12,15,17,19,21,24].includes(i)){let t=document.createElementNS(ns,"text");t.setAttribute("x",x-fg/2);t.setAttribute("y",h-5);t.textContent=i;t.setAttribute("fill","#aaa");t.setAttribute("text-anchor","middle");svg.appendChild(t);}}for(let s=0;s<6;s++){let y=my+s*sg;let l=document.createElementNS(ns,"line");l.setAttribute("x1",mx);l.setAttribute("x2",mx+24*fg);l.setAttribute("y1",y);l.setAttribute("y2",y);l.setAttribute("class","string-line");svg.appendChild(l);}AppState.currentLickData.forEach((d,i)=>{let cx=mx+d.fret*fg-fg/2;let cy=my+(d.string-1)*sg;let g=document.createElementNS(ns,"g");g.setAttribute("id","note-group-"+i);let c=document.createElementNS(ns,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",12);c.setAttribute("class","note-circle");c.onclick=()=>{if(!synth)initAudio();Tone.start();playNoteByMidi(d.midi,d.duration)};g.appendChild(c);let t=document.createElementNS(ns,"text");t.setAttribute("x",cx);t.setAttribute("y",cy+1);t.setAttribute("class","note-text");t.textContent=(AppState.displayMode==="noteName")?d.noteName:(d.degree||"?");g.appendChild(t);svg.appendChild(g);});c.appendChild(svg);}
-    function toggleDisplayMode(){AppState.displayMode=(AppState.displayMode==="noteName")?"degree":"noteName";renderFretboard();}
-
-    async function initAudio() {
-        if(synth) return;
-        synth=new Tone.Synth({oscillator:{type:"triangle"}}).toDestination(); synth.volume.value=-6;
-        clickSynth=new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.001,decay:0.05,sustain:0,release:0.05}}).toDestination(); clickSynth.volume.value=-10;
-        await Tone.start();
-    }
-    function playNoteByMidi(m,d){let f=Tone.Frequency(m,"midi");let dc=(d==="8")?"8n":"4n";synth.triggerAttackRelease(f,dc);}
-
-    async function startSequence() {
-        if(AppState.isPlaying) return;
-        try {
-            await Tone.start();
-            await initAudio();
-            Tone.Transport.stop();
-            Tone.Transport.cancel();
-            Tone.Transport.position = 0;
-            Tone.Transport.bpm.value = document.getElementById("bpmInput").value;
-
-            AppState.isPlaying = true;
-            document.getElementById("playBtn").disabled=true; document.getElementById("stopBtn").disabled=false;
-            document.getElementById("keySelect").disabled=true; document.getElementById("presetSelect").disabled=true; 
-            document.getElementById("userSelect").disabled=true; document.getElementById("octaveUp").disabled=true; document.getElementById("rootStringSelect").disabled=true;
-            
-            const quarter = Tone.Time("4n").toSeconds();
-            const countInDuration = 4 * quarter; 
-
-            for(let i=0; i<4; i++){
-                Tone.Transport.schedule((t) => {
-                    let pitch = (i===0) ? "C6" : "G5"; 
-                    clickSynth.triggerAttackRelease(pitch, "32n", t);
-                }, i * quarter);
-            }
-
-            scheduleNextCycle(countInDuration, AppState.currentKeyIndex);
-            Tone.Transport.start();
-            
-        } catch(e) {
-            console.error(e);
-            alert("再生エラー: ページを更新してください");
-            stopSequence();
-        }
-    }
-
-    function stopSequence() {
-        AppState.isPlaying = false;
-        try { Tone.Transport.stop(); Tone.Transport.cancel(); if(synth) synth.releaseAll(); } catch(e){}
-        document.querySelectorAll('.active-note,.active-staff-note').forEach(e=>e.classList.remove('active-note','active-staff-note'));
-        document.getElementById("playBtn").disabled=false; document.getElementById("stopBtn").disabled=true;
-        document.getElementById("keySelect").disabled=false; document.getElementById("presetSelect").disabled=false; 
-        document.getElementById("userSelect").disabled=false; document.getElementById("octaveUp").disabled=false; document.getElementById("rootStringSelect").disabled=false;
-    }
-
-    function scheduleNextCycle(st, kIdx) {
-        if(!AppState.isPlaying) return;
-        
-        Tone.Transport.schedule((time) => {
-            Tone.Draw.schedule(() => {
-                updateGlobalData(kIdx);
+        window.onload = () => {
+            try {
+                loadUserPresets();
+                setupUI();
+                setupDropZone();
+                updateGlobalData(0);
                 renderAll();
-            }, time);
-        }, st);
+            } catch (e) { console.error(e); }
+        };
 
-        const bb = document.getElementById("backbeatMode").checked;
-        for(let i=0; i<8; i++){
-            if(bb && i%2===0) continue;
-            Tone.Transport.schedule(t=>clickSynth.triggerAttackRelease("C6","32n",t), st+i*Tone.Time("4n").toSeconds());
+        function loadUserPresets() { const s = localStorage.getItem(STORAGE_KEY); if (s) { try { userLibrary = JSON.parse(s) } catch (e) { } } }
+        function setupUI() {
+            const kSel = document.getElementById("keySelect");
+            if (kSel.options.length === 0) {
+                keyCycle.forEach((k, i) => { let opt = document.createElement("option"); opt.value = i; opt.text = k; kSel.appendChild(opt); });
+            }
+            const pSel = document.getElementById("presetSelect"); pSel.innerHTML = "";
+            defaultLibrary.forEach((l, i) => { let o = document.createElement("option"); o.value = i; o.text = l.name; pSel.appendChild(o) });
+            updateUserSelect();
+        }
+        function updateUserSelect() {
+            const uSel = document.getElementById("userSelect"); uSel.innerHTML = '<option value="" selected>-- 選択なし --</option>';
+            userLibrary.forEach((l, i) => { let o = document.createElement("option"); o.value = "user-" + i; o.text = l.name; uSel.appendChild(o) });
+            if (importedLick) { let o = document.createElement("option"); o.value = "import"; o.text = importedLick.name; o.style.color = "blue"; uSel.appendChild(o); }
         }
 
-        let nextCycleData = getCalculatedLickData(kIdx).data;
-        
-        let cur = st;
-        nextCycleData.forEach((d, i) => {
-            let dc=(d.duration==="8")?"8n":"4n"; let ds=Tone.Time(dc).toSeconds();
-            Tone.Transport.schedule(t=>{
-                synth.triggerAttackRelease(Tone.Frequency(d.midi,"midi"), dc, t);
-                Tone.Draw.schedule(()=>{
-                    let g=document.getElementById("note-group-"+i); if(g)g.querySelector("circle").classList.add("active-note");
-                    let s=document.getElementById("staff-note-"+i); if(s)s.classList.add("active-staff-note");
-                }, t);
-                Tone.Draw.schedule(()=>{
-                    let g=document.getElementById("note-group-"+i); if(g)g.querySelector("circle").classList.remove("active-note");
-                    let s=document.getElementById("staff-note-"+i); if(s)s.classList.remove("active-staff-note");
-                }, t+ds-0.05);
-            }, cur);
-            cur += ds;
-        });
+        function changePreset() { let i = document.getElementById("presetSelect").value; AppState.currentLickBase = defaultLibrary[i].data; document.getElementById("userSelect").value = ""; updateGlobalData(AppState.currentKeyIndex); renderAll(); }
+        function changeUser() { let v = document.getElementById("userSelect").value; if (!v) return; if (v === "import") AppState.currentLickBase = importedLick.data; else AppState.currentLickBase = userLibrary[parseInt(v.split("-")[1])].data; updateGlobalData(AppState.currentKeyIndex); renderAll(); }
+        function saveUserPreset() { const n = prompt("保存名:", "My Lick"); if (n) { userLibrary.push({ name: "★ " + n, data: AppState.currentLickBase }); localStorage.setItem(STORAGE_KEY, JSON.stringify(userLibrary)); updateUserSelect(); document.getElementById("userSelect").value = "user-" + (userLibrary.length - 1); alert("保存しました"); } }
+        function deleteCurrentPreset() { const v = document.getElementById("userSelect").value; if (!v) { alert("選択してください"); return; } if (v === "import") { importedLick = null; updateUserSelect(); changePreset(); return; } if (confirm("削除しますか？")) { userLibrary.splice(parseInt(v.split("-")[1]), 1); localStorage.setItem(STORAGE_KEY, JSON.stringify(userLibrary)); updateUserSelect(); changePreset(); } }
+        function clearAllUserPresets() { if (confirm("全消去?")) { localStorage.removeItem(STORAGE_KEY); userLibrary = []; updateUserSelect(); changePreset(); } }
+        function updateBpmDisplay(v) { document.getElementById("bpmInput").value = v; document.getElementById("bpmDisplay").innerText = v; if (Tone.Transport.state === 'started') Tone.Transport.bpm.rampTo(v, 0.1); }
 
-        let dur = 8 * Tone.Time("4n").toSeconds();
-        let nk = document.getElementById("cycleMode").checked ? (kIdx+1)%12 : kIdx;
-        
-        Tone.Transport.schedule(() => {
-            scheduleNextCycle(st+dur, nk);
-        }, st + dur - 0.1);
-    }
-</script>
+        async function changeKeyManual() {
+            updateGlobalData(parseInt(document.getElementById("keySelect").value));
+            renderAll();
+            if (AppState.isPlaying) {
+                stopSequence();
+                await startSequence();
+            }
+        }
+
+        // 計算ロジック
+        function getCalculatedLickData(keyIdx) {
+            let keyName = keyCycle[keyIdx];
+            let targetKeyIndex = notesFlat.indexOf(keyName);
+            let startStr = parseInt(document.getElementById("rootStringSelect").value);
+            let targetStr = (keyIdx % 2 === 0) ? startStr : (startStr - 1);
+            if (targetStr < 1) targetStr = 1;
+
+            let strBaseMidi = stringBaseMidi[targetStr];
+            let anchorFret = (targetKeyIndex - (strBaseMidi % 12) + 12) % 12;
+            if (anchorFret < 3) anchorFret += 12;
+            if (document.getElementById("octaveUp").checked) anchorFret += 12;
+            if (anchorFret > 20) anchorFret -= 12;
+
+            let targetRootMidi = strBaseMidi + anchorFret;
+            let shift = targetRootMidi - 48;
+            let currentNoteNames = (keySignatures[keyName].t === 's') ? notesSharp : notesFlat;
+
+            let targetMidiNotes = AppState.currentLickBase.map(d => {
+                if (d.isRest) {
+                    return { isRest: true, duration: d.duration, beat: d.beat, durationBeats: d.durationBeats, chord: d.chord };
+                }
+                let baseMidi = stringBaseMidi[d.string] + d.fret;
+                let finalMidi = baseMidi + shift;
+                let notePc = finalMidi % 12;
+                let interval = (notePc - targetKeyIndex + 12) % 12;
+                let dynDegree = degreeMap[interval];
+                return { midi: finalMidi, duration: d.duration, chord: d.chord, degree: dynDegree, beat: d.beat, durationBeats: d.durationBeats };
+            });
+
+            return {
+                data: optimizeFingering(targetMidiNotes, anchorFret, currentNoteNames),
+                anchorFret: anchorFret
+            };
+        }
+
+        function updateGlobalData(keyIdx) {
+            let result = getCalculatedLickData(keyIdx);
+            AppState.currentKeyIndex = keyIdx;
+            AppState.currentLickData = result.data;
+            AppState.currentHandPos = result.anchorFret;
+
+            let keyName = keyCycle[keyIdx];
+            document.getElementById("currentKeyDisplay").innerText = "Key: " + keyName;
+            document.getElementById("keySelect").value = keyIdx;
+        }
+
+        function optimizeFingering(notes, anchorFret, noteNameArray) {
+            let lick = [];
+            let boxMin = anchorFret - 2;
+            let boxMax = anchorFret + 5;
+            notes.forEach((n) => {
+                if (n.isRest) {
+                    lick.push({ isRest: true, beat: n.beat, durationBeats: n.durationBeats, duration: n.duration, chord: n.chord });
+                    return;
+                }
+                let candidates = [];
+                for (let s = 1; s <= 6; s++) {
+                    let f = n.midi - stringBaseMidi[s];
+                    if (f >= 0 && f <= 24) candidates.push({ string: s, fret: f });
+                }
+                if (candidates.length > 0) {
+                    candidates.sort((a, b) => {
+                        // Prioritize staying in position (fret distance)
+                        // Then prioritize lower strings (higher string index) for verticality
+                        let costA = Math.abs(a.fret - anchorFret) * 10 - a.string;
+                        let costB = Math.abs(b.fret - anchorFret) * 10 - b.string;
+
+                        if (a.fret < boxMin || a.fret > boxMax) costA += 1000;
+                        if (b.fret < boxMin || b.fret > boxMax) costB += 1000;
+                        return costA - costB;
+                    });
+                    let best = candidates[0];
+                    let nameIdx = n.midi % 12;
+                    let oct = Math.floor((n.midi + 12) / 12) - 1;
+                    lick.push({
+                        noteName: noteNameArray[nameIdx], octave: oct, midi: n.midi,
+                        string: best.string, fret: best.fret, duration: n.duration, chord: n.chord, degree: n.degree,
+                        beat: n.beat, durationBeats: n.durationBeats
+                    });
+                }
+            });
+            return lick;
+        }
+
+        function shouldDrawAccidental(noteName, keyName) {
+            const letter = noteName.charAt(0);
+            const actualAcc = noteName.slice(1);
+            const sig = keySignatures[keyName];
+            let expectedAcc = "";
+
+            if (sig.n > 0) {
+                if (sig.t === "f") {
+                    const flatsOrder = ["B", "E", "A", "D", "G", "C", "F"];
+                    const affected = flatsOrder.slice(0, sig.n);
+                    if (affected.includes(letter)) expectedAcc = "b";
+                } else {
+                    const sharpsOrder = ["F", "C", "G", "D", "A", "E", "B"];
+                    const affected = sharpsOrder.slice(0, sig.n);
+                    if (affected.includes(letter)) expectedAcc = "#";
+                }
+            }
+            return actualAcc !== expectedAcc;
+        }
+
+        function setupDropZone() { const d = document.getElementById("drop-zone"); d.addEventListener("dragover", e => { e.preventDefault(); d.classList.add("highlight") }); d.addEventListener("dragleave", () => d.classList.remove("highlight")); d.addEventListener("drop", handleDrop); }
+        async function handleDrop(e) { e.preventDefault(); document.getElementById("drop-zone").classList.remove("highlight"); let f = e.dataTransfer.files[0]; if (f) { let b = await f.arrayBuffer(); parseMidi(b, f.name); } }
+
+        function parseMidi(b, n) {
+            const m = new Midi(b);
+            if (m.tracks.length === 0) return;
+
+            const ppq = m.header.ppq || 480;
+            const track = m.tracks[0];
+            let notes = track.notes;
+
+            // Sort notes by time just in case
+            notes.sort((a, b) => a.ticks - b.ticks);
+
+            let processedNotes = [];
+            let currentTick = 0;
+
+            // Detect Key
+            let detectedKeyIndex = detectKey(notes);
+            let keyName = keyCycle[detectedKeyIndex];
+
+            notes.forEach(note => {
+                // Check for rest before this note
+                if (note.ticks > currentTick) {
+                    let restTicks = note.ticks - currentTick;
+                    let restBeats = restTicks / ppq;
+                    if (restBeats >= 0.1) { // Ignore tiny gaps
+                        processedNotes.push({
+                            isRest: true,
+                            beat: currentTick / ppq,
+                            durationBeats: restBeats,
+                            duration: restBeats >= 1 ? "4" : "8",
+                            chord: ""
+                        });
+                    }
+                }
+
+                let durationBeats = note.durationTicks / ppq;
+                processedNotes.push({
+                    midi: note.midi,
+                    duration: durationBeats >= 0.8 ? "4" : "8", // Simple quantization
+                    durationBeats: durationBeats,
+                    beat: note.ticks / ppq,
+                    chord: "",
+                    degree: degreeMap[note.midi % 12]
+                });
+
+                currentTick = note.ticks + note.durationTicks;
+            });
+
+            // Optimize fingering (pass rests through)
+            let optimized = optimizeFingering(processedNotes, 5, notesFlat); // Use flat by default, will be adjusted by key later
+
+            if (optimized.length > 0) optimized[0].chord = "Start";
+
+            importedLick = { name: "📂 " + n, data: optimized };
+            updateUserSelect();
+            document.getElementById("userSelect").value = "import";
+            changeUser();
+
+            // Reset key to C (index 0) to keep original pitch
+            updateGlobalData(0);
+            renderAll();
+        }
+
+        function detectKey(notes) {
+            let scores = keyCycle.map((k, i) => {
+                let scaleNotes = (keySignatures[k].t === 's') ? notesSharp : notesFlat;
+                // Diatonic scale indices: 0, 2, 4, 5, 7, 9, 11
+                let diatonicIndices = [0, 2, 4, 5, 7, 9, 11];
+                let rootIndex = notesFlat.indexOf(k); // works for C, F, Bb... for sharps we need to map
+                if (rootIndex === -1) rootIndex = notesSharp.indexOf(k);
+
+                let score = 0;
+                notes.forEach(n => {
+                    let pc = n.midi % 12;
+                    let interval = (pc - rootIndex + 12) % 12;
+                    if (diatonicIndices.includes(interval)) score++;
+                });
+
+                // Bonus if last note is tonic
+                let lastNote = notes[notes.length - 1];
+                if (lastNote && (lastNote.midi % 12) === rootIndex) score += 5;
+
+                return { index: i, score: score };
+            });
+
+            scores.sort((a, b) => b.score - a.score);
+            return scores[0].index;
+        }
+
+        function renderAll() { renderManualNotation(); renderFretboard(); }
+
+        function renderManualNotation() {
+            const container = document.getElementById("notation-container"); container.innerHTML = "";
+            const width = 950, height = 300;
+            const ns = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(ns, "svg");
+            svg.setAttribute("width", width); svg.setAttribute("height", height);
+
+            // Layout Constants
+            const topY = 140;
+            const marginLeft = 130;
+            const marginRight = 30;
+            const totalWidth = width - marginLeft - marginRight;
+            const measureWidth = totalWidth / 4;
+            const beatWidth = measureWidth / 4;
+
+            // Draw Staff Lines
+            for (let i = 0; i < 5; i++) {
+                let y = topY + i * 10;
+                let l = document.createElementNS(ns, "line");
+                l.setAttribute("x1", 20); l.setAttribute("x2", width - 20);
+                l.setAttribute("y1", y); l.setAttribute("y2", y);
+                l.setAttribute("class", "stave-line");
+                svg.appendChild(l);
+            }
+
+            // Draw Clef
+            let cl = document.createElementNS(ns, "text");
+            cl.setAttribute("x", 30); cl.setAttribute("y", topY + 30);
+            cl.setAttribute("font-size", "45");
+            cl.textContent = "𝄞";
+            svg.appendChild(cl);
+
+            // Draw Key Signature
+            drawKeySignature(svg, ns, topY);
+
+            // Draw Bar Lines (0, 4, 8, 12, 16 beats)
+            for (let i = 0; i <= 4; i++) {
+                let bx = marginLeft + i * measureWidth;
+                let type = (i === 4) ? "solid" : "bar";
+                drawDivider(svg, ns, bx, topY, type);
+
+                // Measure Numbers
+                if (i < 4) {
+                    let mn = document.createElementNS(ns, "text");
+                    mn.setAttribute("x", bx + 5); mn.setAttribute("y", topY - 10);
+                    mn.setAttribute("font-size", "12"); mn.setAttribute("fill", "#666");
+                    mn.textContent = (i + 1);
+                    svg.appendChild(mn);
+                }
+            }
+
+            const steps = { "C": 0, "D": 1, "E": 2, "F": 3, "G": 4, "A": 5, "B": 6 };
+            let currentKeyName = keyCycle[AppState.currentKeyIndex];
+
+            // --- CHORD RENDERING (1 per measure, centered) ---
+            for (let m = 0; m < 4; m++) {
+                let startBeat = m * 4;
+                let endBeat = (m + 1) * 4;
+                // Find first note in this measure that has a chord
+                let chordNote = AppState.currentLickData.find(d => d.beat >= startBeat && d.beat < endBeat && d.chord);
+
+                if (chordNote) {
+                    let l = chordNote.chord;
+                    if (l.length <= 2 && l !== "Start") l = getTransposedChordName(l);
+
+                    let t = document.createElementNS(ns, "text");
+                    let cx = marginLeft + (m * measureWidth) + (measureWidth / 2);
+                    t.setAttribute("x", cx);
+                    t.setAttribute("y", topY - 50);
+                    t.setAttribute("class", "chord-text");
+                    t.setAttribute("text-anchor", "middle");
+                    t.setAttribute("font-size", "20"); // Make chords slightly larger
+                    t.textContent = l;
+                    svg.appendChild(t);
+                }
+            }
+
+            // --- NOTE RENDERING ---
+            // 1. Pre-calculate positions and properties
+            let renderNotes = AppState.currentLickData.map((d, i) => {
+                // Quantize to 16th note grid
+                let visualBeat = Math.round(d.beat * 4) / 4;
+
+                let x = marginLeft + visualBeat * beatWidth + (beatWidth / 4);
+                if (x > width - marginRight) x = width - marginRight;
+
+                let cy = 0;
+                let stemDir = "up"; // Default
+
+                if (!d.isRest) {
+                    let nv = steps[d.noteName.substring(0, 1)];
+                    let as = d.octave * 7 + nv;
+                    let f5 = 5 * 7 + 3; // F5 reference
+                    cy = topY + (f5 - as) * 5;
+                    // Stem direction rule: Notes on or above middle line (B4) stem down
+                    // B4 is topY + 20
+                    stemDir = (cy <= topY + 20) ? "down" : "up";
+                }
+
+                return { ...d, index: i, x: x, cy: cy, visualBeat: visualBeat, stemDir: stemDir, beam: null };
+            });
+
+            // 2. Calculate Beaming
+            let currentBeam = [];
+            renderNotes.forEach((n) => {
+                if (n.isRest || n.duration !== "8") {
+                    if (currentBeam.length > 1) assignBeam(currentBeam);
+                    currentBeam = [];
+                    return;
+                }
+
+                // Break beam at measure boundary
+                if (currentBeam.length > 0) {
+                    let prev = currentBeam[currentBeam.length - 1];
+                    // Break if crossing beat 2 (half measure) or measure line
+                    if (Math.floor(prev.visualBeat / 2) !== Math.floor(n.visualBeat / 2)) {
+                        assignBeam(currentBeam);
+                        currentBeam = [];
+                    }
+                }
+                currentBeam.push(n);
+            });
+            if (currentBeam.length > 1) assignBeam(currentBeam);
+
+            function assignBeam(group) {
+                let id = "beam-" + group[0].index;
+                // Majority rule for stem direction
+                let downs = group.filter(n => n.stemDir === "down").length;
+                let ups = group.length - downs;
+                let finalDir = (downs >= ups) ? "down" : "up";
+                group.forEach(n => { n.beam = id; n.stemDir = finalDir; });
+            }
+
+            // 3. Render Loop
+            let beamsToDraw = {}; // Map beamId -> { notes: [], dir: ... }
+
+            renderNotes.forEach(n => {
+                // Rests
+                if (n.isRest) {
+                    let r = document.createElementNS(ns, "text");
+                    r.setAttribute("x", n.x + beatWidth / 2 - 10);
+                    r.setAttribute("y", topY + 28); // Middle line approx
+                    r.setAttribute("font-size", "35");
+                    r.setAttribute("class", "accidental");
+                    r.setAttribute("text-anchor", "middle");
+                    r.textContent = (n.duration === "4" || n.durationBeats >= 1.0) ? "𝄽" : "𝄾";
+                    svg.appendChild(r);
+                    return;
+                }
+
+                // Ledger Lines
+                let f5 = 5 * 7 + 3; // F5 reference
+                let nv = steps[n.noteName.substring(0, 1)];
+                let as = n.octave * 7 + nv;
+                if (f5 - as >= 10 || f5 - as <= -2) { // If note is outside staff lines
+                    let ly = n.cy;
+                    // Adjust y for notes on ledger lines (not between)
+                    if ((f5 - as) % 2 !== 0) ly = (f5 - as > 0) ? n.cy - 5 : n.cy + 5;
+                    let ll = document.createElementNS(ns, "line");
+                    ll.setAttribute("x1", n.x - 12); ll.setAttribute("x2", n.x + 12);
+                    ll.setAttribute("y1", ly); ll.setAttribute("y2", ly);
+                    ll.setAttribute("class", "ledger-line");
+                    svg.appendChild(ll);
+                }
+
+                // Note Head
+                let hd = document.createElementNS(ns, "ellipse");
+                hd.setAttribute("id", "staff-note-" + n.index); // Add ID for highlighting
+                hd.setAttribute("cx", n.x); hd.setAttribute("cy", n.cy);
+                hd.setAttribute("rx", 6); hd.setAttribute("ry", 4.5);
+                hd.setAttribute("transform", `rotate(-20 ${n.x} ${n.cy})`);
+                hd.setAttribute("class", "note-head");
+                svg.appendChild(hd);
+
+                // Accidentals
+                if (shouldDrawAccidental(n.noteName, currentKeyName)) {
+                    let ac = document.createElementNS(ns, "text");
+                    ac.setAttribute("x", n.x - 20); ac.setAttribute("y", n.cy + 8);
+                    ac.setAttribute("class", "accidental");
+                    let s = "";
+                    if (n.noteName.includes("b")) s = "♭";
+                    else if (n.noteName.includes("#")) s = "♯";
+                    else s = "♮";
+                    ac.textContent = s; svg.appendChild(ac);
+                }
+
+                // Stems & Flags
+                let stemLen = 35;
+                let sy1 = n.cy;
+                let sy2 = (n.stemDir === "down") ? n.cy + stemLen : n.cy - stemLen;
+                let sx = (n.stemDir === "down") ? n.x - 5 : n.x + 5;
+
+                if (n.beam) {
+                    // Defer drawing stem until beam is calculated
+                    if (!beamsToDraw[n.beam]) beamsToDraw[n.beam] = { notes: [], dir: n.stemDir };
+                    beamsToDraw[n.beam].notes.push({ x: sx, y: sy1, noteY: n.cy });
+                } else {
+                    // Draw individual stem
+                    let st = document.createElementNS(ns, "line");
+                    st.setAttribute("x1", sx); st.setAttribute("x2", sx);
+                    st.setAttribute("y1", sy1); st.setAttribute("y2", sy2);
+                    st.setAttribute("class", "stem");
+                    svg.appendChild(st);
+
+                    // Flag (8th note)
+                    if (n.duration === "8") {
+                        let fl = document.createElementNS(ns, "path");
+                        let p = "";
+                        if (n.stemDir === "down") {
+                            p = `M ${sx} ${sy2} Q ${sx + 8} ${sy2 - 10} ${sx + 8} ${sy2 - 25}`;
+                        } else {
+                            p = `M ${sx} ${sy2} Q ${sx + 8} ${sy2 + 10} ${sx + 8} ${sy2 + 25}`;
+                        }
+                        fl.setAttribute("d", p);
+                        fl.setAttribute("stroke", "black"); fl.setAttribute("stroke-width", 2); fl.setAttribute("fill", "none");
+                        svg.appendChild(fl);
+                    }
+                }
+            });
+
+            // 4. Draw Beams
+            Object.values(beamsToDraw).forEach(beam => {
+                let notes = beam.notes;
+                let dir = beam.dir;
+
+                // Calculate beam height (flat beam for simplicity)
+                // Find the "furthest" note stem end to clear all notes
+                let targetY = (dir === "down") ? -Infinity : Infinity;
+                notes.forEach(n => {
+                    let endY = (dir === "down") ? n.noteY + 35 : n.noteY - 35;
+                    if (dir === "down") {
+                        if (endY > targetY) targetY = endY;
+                    } else {
+                        if (endY < targetY) targetY = endY;
+                    }
+                });
+
+                // Draw stems to the beam line
+                notes.forEach(n => {
+                    let st = document.createElementNS(ns, "line");
+                    st.setAttribute("x1", n.x); st.setAttribute("x2", n.x);
+                    st.setAttribute("y1", n.y); st.setAttribute("y2", targetY);
+                    st.setAttribute("class", "stem");
+                    svg.appendChild(st);
+                });
+
+                // Draw the beam itself
+                let startX = notes[0].x;
+                let endX = notes[notes.length - 1].x;
+                let bm = document.createElementNS(ns, "line");
+                bm.setAttribute("x1", startX); bm.setAttribute("x2", endX);
+                bm.setAttribute("y1", targetY); bm.setAttribute("y2", targetY);
+                bm.setAttribute("stroke", "black");
+                bm.setAttribute("stroke-width", "5");
+                svg.appendChild(bm);
+            });
+
+            container.appendChild(svg);
+        }
+
+        function drawDivider(s, n, x, y, t) { let l = document.createElementNS(n, "line"); l.setAttribute("x1", x); l.setAttribute("x2", x); l.setAttribute("y1", y); l.setAttribute("y2", y + 40); l.setAttribute("class", t === "bar" ? "bar-line" : "solid-divider"); s.appendChild(l); }
+
+        function drawKeySignature(s, n, y) {
+            let k = keyCycle[AppState.currentKeyIndex];
+            let sg = keySignatures[k];
+            if (!sg || sg.n === 0) return;
+            let fs = [4, 1, 5, 2, 6, 3], ss = [0, 3, -1, 2, 5];
+            let st = sg.t === "f" ? fs : ss;
+            let sm = sg.t === "f" ? "♭" : "♯";
+            for (let i = 0; i < sg.n; i++) {
+                let ty = y + st[i] * 5;
+                let t = document.createElementNS(n, "text");
+                t.setAttribute("x", 55 + i * 8);
+                t.setAttribute("y", ty + 8);
+                t.setAttribute("class", "accidental");
+                t.textContent = sm; s.appendChild(t);
+            }
+        }
+
+        function getTransposedChordName(t) { if (!["II", "V", "I", "VI"].includes(t)) return t; let r = notesFlat.indexOf(keyCycle[AppState.currentKeyIndex]); let sh = { "II": 2, "V": 7, "I": 0, "VI": 9 }[t]; return notesFlat[(r + sh) % 12] + { "II": "m7", "V": "7", "I": "maj7", "VI": "7" }[t]; }
+
+        function renderFretboard() {
+            const c = document.getElementById("fretboard-container"); c.innerHTML = ""; const w = 950, h = 180; const ns = "http://www.w3.org/2000/svg"; const svg = document.createElementNS(ns, "svg"); svg.setAttribute("width", w); svg.setAttribute("height", h); const mx = 30, my = 20, sg = 25, fg = 38;
+            for (let i = 0; i <= 24; i++) { let x = mx + i * fg; let l = document.createElementNS(ns, "line"); l.setAttribute("x1", x); l.setAttribute("x2", x); l.setAttribute("y1", my); l.setAttribute("y2", my + 5 * sg); l.setAttribute("class", i === 0 ? "string-line" : "fret-line"); if (i === 0) l.setAttribute("stroke-width", 5); svg.appendChild(l); if ([3, 5, 7, 9, 12, 15, 17, 19, 21, 24].includes(i)) { let t = document.createElementNS(ns, "text"); t.setAttribute("x", x - fg / 2); t.setAttribute("y", h - 5); t.textContent = i; t.setAttribute("fill", "#cda434"); t.setAttribute("text-anchor", "middle"); svg.appendChild(t); } }
+            for (let s = 0; s < 6; s++) { let y = my + s * sg; let l = document.createElementNS(ns, "line"); l.setAttribute("x1", mx); l.setAttribute("x2", mx + 24 * fg); l.setAttribute("y1", y); l.setAttribute("y2", y); l.setAttribute("class", "string-line"); svg.appendChild(l); }
+
+            AppState.currentLickData.forEach((d, i) => {
+                if (d.isRest) return;
+                let cx = mx + d.fret * fg - fg / 2; let cy = my + (d.string - 1) * sg; let g = document.createElementNS(ns, "g"); g.setAttribute("id", "note-group-" + i); let c = document.createElementNS(ns, "circle"); c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", 12); c.setAttribute("class", "note-circle"); c.onclick = () => { if (!synth) initAudio(); Tone.start(); playNoteByMidi(d.midi, d.duration) }; g.appendChild(c); let t = document.createElementNS(ns, "text"); t.setAttribute("x", cx); t.setAttribute("y", cy + 1); t.setAttribute("class", "note-text"); t.textContent = (AppState.displayMode === "noteName") ? d.noteName : (d.degree || "?"); g.appendChild(t); svg.appendChild(g);
+            });
+            c.appendChild(svg);
+        }
+        function toggleDisplayMode() { AppState.displayMode = (AppState.displayMode === "noteName") ? "degree" : "noteName"; renderFretboard(); }
+
+        async function initAudio() {
+            if (synth) return;
+            synth = new Tone.Synth({ oscillator: { type: "triangle" } }).toDestination(); synth.volume.value = -6;
+            clickSynth = new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.05 } }).toDestination(); clickSynth.volume.value = -10;
+            await Tone.start();
+        }
+        function playNoteByMidi(m, d) { let f = Tone.Frequency(m, "midi"); let dc = (d === "8") ? "8n" : "4n"; synth.triggerAttackRelease(f, dc); }
+
+        async function startSequence() {
+            if (AppState.isPlaying) return;
+            try {
+                await Tone.start();
+                await initAudio();
+                Tone.Transport.stop();
+                Tone.Transport.cancel();
+                Tone.Transport.position = 0;
+                Tone.Transport.bpm.value = document.getElementById("bpmInput").value;
+
+                AppState.isPlaying = true;
+                document.getElementById("playBtn").disabled = true; document.getElementById("stopBtn").disabled = false;
+                document.getElementById("keySelect").disabled = true; document.getElementById("presetSelect").disabled = true;
+                document.getElementById("userSelect").disabled = true; document.getElementById("octaveUp").disabled = true; document.getElementById("rootStringSelect").disabled = true;
+
+                const quarter = Tone.Time("4n").toSeconds();
+                const countInDuration = 4 * quarter;
+
+                for (let i = 0; i < 4; i++) {
+                    Tone.Transport.schedule((t) => {
+                        let pitch = (i === 0) ? "C6" : "G5";
+                        clickSynth.triggerAttackRelease(pitch, "32n", t);
+                    }, i * quarter);
+                }
+
+                scheduleNextCycle(countInDuration, AppState.currentKeyIndex);
+                Tone.Transport.start();
+
+            } catch (e) {
+                console.error(e);
+                alert("再生エラー: ページを更新してください");
+                stopSequence();
+            }
+        }
+
+        function stopSequence() {
+            AppState.isPlaying = false;
+            try { Tone.Transport.stop(); Tone.Transport.cancel(); if (synth) synth.releaseAll(); } catch (e) { }
+            document.querySelectorAll('.active-note,.active-staff-note').forEach(e => e.classList.remove('active-note', 'active-staff-note'));
+            document.getElementById("playBtn").disabled = false; document.getElementById("stopBtn").disabled = true;
+            document.getElementById("keySelect").disabled = false; document.getElementById("presetSelect").disabled = false;
+            document.getElementById("userSelect").disabled = false; document.getElementById("octaveUp").disabled = false; document.getElementById("rootStringSelect").disabled = false;
+        }
+
+        function scheduleNextCycle(st, kIdx) {
+            if (!AppState.isPlaying) return;
+
+            Tone.Transport.schedule((time) => {
+                Tone.Draw.schedule(() => {
+                    updateGlobalData(kIdx);
+                    renderAll();
+                }, time);
+            }, st);
+
+            const bb = document.getElementById("backbeatMode").checked;
+            // 4 measures = 16 beats
+            for (let i = 0; i < 16; i++) {
+                if (bb && i % 2 === 0) continue;
+                Tone.Transport.schedule(t => clickSynth.triggerAttackRelease("C6", "32n", t), st + i * Tone.Time("4n").toSeconds());
+            }
+
+            let nextCycleData = getCalculatedLickData(kIdx).data;
+
+            let cur = st;
+            nextCycleData.forEach((d, i) => {
+                if (d.isRest) {
+                    // Just advance time
+                    // cur += Tone.Time(d.durationBeats * Tone.Time("4n").toSeconds()).toSeconds(); // Wait, durationBeats is float
+                    // Better: calculate start time relative to cycle start
+                    return;
+                }
+
+                // Calculate absolute time based on beat
+                let noteTime = st + d.beat * Tone.Time("4n").toSeconds();
+                let durSec = d.durationBeats * Tone.Time("4n").toSeconds();
+
+                Tone.Transport.schedule(t => {
+                    synth.triggerAttackRelease(Tone.Frequency(d.midi, "midi"), durSec, t);
+                    Tone.Draw.schedule(() => {
+                        let g = document.getElementById("note-group-" + i); if (g) g.querySelector("circle").classList.add("active-note");
+                        let s = document.getElementById("staff-note-" + i); if (s) s.classList.add("active-staff-note");
+                    }, t);
+                    Tone.Draw.schedule(() => {
+                        let g = document.getElementById("note-group-" + i); if (g) g.querySelector("circle").classList.remove("active-note");
+                        let s = document.getElementById("staff-note-" + i); if (s) s.classList.remove("active-staff-note");
+                    }, t + durSec - 0.05);
+                }, noteTime);
+            });
+
+            let dur = 16 * Tone.Time("4n").toSeconds(); // 4 measures
+            let nk = document.getElementById("cycleMode").checked ? (kIdx + 1) % 12 : kIdx;
+
+            Tone.Transport.schedule(() => {
+                scheduleNextCycle(st + dur, nk);
+            }, st + dur - 0.1);
+        }
+    </script>
 </body>
+
 </html>
