@@ -807,6 +807,16 @@
             // Sort notes by time just in case
             notes.sort((a, b) => a.ticks - b.ticks);
 
+            // Check for polyphonic notes (overlapping)
+            for (let i = 0; i < notes.length - 1; i++) {
+                let currentNoteEnd = notes[i].ticks + notes[i].durationTicks;
+                let nextNoteStart = notes[i + 1].ticks;
+                if (nextNoteStart < currentNoteEnd) {
+                    alert("エラー: このMIDIファイルには重なる音符（和音）が含まれています。\n単音のみのMIDIファイルをアップロードしてください。");
+                    return;
+                }
+            }
+
             let processedNotes = [];
             let currentTick = 0;
 
@@ -832,12 +842,12 @@
 
                 let durationBeats = note.durationTicks / ppq;
                 processedNotes.push({
-                    midi: note.midi,
+                    midi: note.midi + 2, // +2 semitone correction
                     duration: durationBeats >= 0.8 ? "4" : "8", // Simple quantization
                     durationBeats: durationBeats,
                     beat: note.ticks / ppq,
                     chord: "",
-                    degree: degreeMap[note.midi % 12]
+                    degree: degreeMap[(note.midi + 2) % 12]
                 });
 
                 currentTick = note.ticks + note.durationTicks;
