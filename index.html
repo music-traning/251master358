@@ -430,6 +430,15 @@
                 </div>
 
                 <div class="select-group">
+                    <label>Difficulty</label>
+                    <select id="difficultySelect" onchange="changeDifficulty()" style="width:120px;">
+                        <option value="12" selected>Advanced (12)</option>
+                        <option value="6">Intermediate (6)</option>
+                        <option value="3">Beginner (3)</option>
+                    </select>
+                </div>
+
+                <div class="select-group">
                     <label>Start String</label>
                     <select id="rootStringSelect" onchange="changeKeyManual()" style="width:110px; font-weight:bold;">
                         <option value="6">6弦 (Low)</option>
@@ -1433,6 +1442,7 @@
                 document.getElementById("keySelect").disabled = true; document.getElementById("presetSelect").disabled = true;
                 document.getElementById("userSelect").disabled = true; document.getElementById("octaveUp").disabled = true; document.getElementById("rootStringSelect").disabled = true;
                 document.getElementById("cagedSelect").disabled = true; document.getElementById("cagedCycle").disabled = true;
+                document.getElementById("difficultySelect").disabled = true;
 
                 const quarter = Tone.Time("4n").toSeconds();
                 const countInDuration = 4 * quarter;
@@ -1462,6 +1472,7 @@
             document.getElementById("keySelect").disabled = false; document.getElementById("presetSelect").disabled = false;
             document.getElementById("userSelect").disabled = false; document.getElementById("octaveUp").disabled = false; document.getElementById("rootStringSelect").disabled = false;
             document.getElementById("cagedSelect").disabled = false; document.getElementById("cagedCycle").disabled = false;
+            document.getElementById("difficultySelect").disabled = false;
         }
 
         function scheduleNextCycle(st, kIdx) {
@@ -1510,11 +1521,39 @@
             });
 
             let dur = 16 * Tone.Time("4n").toSeconds(); // 4 measures
-            let nk = document.getElementById("cycleMode").checked ? (kIdx + 1) % 12 : kIdx;
+
+            // Calculate next key based on difficulty
+            let diff = parseInt(document.getElementById("difficultySelect").value);
+            let nk;
+            if (document.getElementById("cycleMode").checked) {
+                // If current key index is within the allowed range, increment.
+                // If it goes out of range (>= diff), wrap to 0.
+                // But wait, keyCycle is always 12 items.
+                // Beginner (3): 0, 1, 2 -> 0
+                // Intermediate (6): 0, 1, 2, 3, 4, 5 -> 0
+                // Advanced (12): 0..11 -> 0
+
+                // If we are currently at a key index that is "outside" the new difficulty (e.g. index 8 but diff is 3),
+                // we should probably jump to 0.
+
+                if (kIdx + 1 >= diff) {
+                    nk = 0;
+                } else {
+                    nk = kIdx + 1;
+                }
+            } else {
+                nk = kIdx;
+            }
 
             Tone.Transport.schedule(() => {
                 scheduleNextCycle(st + dur, nk);
             }, st + dur - 0.1);
+        }
+
+        function changeDifficulty() {
+            // If the current key is outside the new range, reset to C?
+            // Or just let it be until play starts?
+            // Let's just update UI if needed, but logic handles it at runtime.
         }
 
         function openHelp() {
